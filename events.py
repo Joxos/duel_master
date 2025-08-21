@@ -1,6 +1,6 @@
 import importlib
 from loguru import logger
-from enumerations import SummonType, CardType
+from enumerations import SUMMON_TYPE
 
 
 IGNORED_EVENTS_LOGGING = []
@@ -10,7 +10,7 @@ class Event:
         pass
 
 class OnMonsterSummon(Event):
-    def __init__(self, summon_type: SummonType, card):
+    def __init__(self, summon_type: SUMMON_TYPE, card):
         self.summon_type = summon_type
         self.monster = card
 
@@ -34,13 +34,12 @@ class EventsManager:
         self.game_ref = game_ref
 
     def register(self, event):
-        if isinstance(event, list):
-            for e in event:
-                logger.debug(f"Registering event: {e.__name__}")
-                self.events[e] = []
-        else:
-            logger.debug(f"Registering event: {event}")
-            self.events[event] = []
+        logger.debug(f"Registering event: {event}")
+        self.events[event] = []
+
+    def multi_register(self, events):
+        for event in events:
+            self.register(event)
 
     def subscribe(self, event, func):
         if isinstance(func, list):
@@ -77,7 +76,7 @@ class EventsManager:
             self.multi_subscribe(module.subscriptions)
         if hasattr(module, "registrations"):
             logger.debug(f"Found registrations in module: {name}")
-            self.register(module.registrations)
+            self.multi_register(module.registrations)
 
     def import_modules(self, names):
         for name in names:

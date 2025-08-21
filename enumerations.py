@@ -1,9 +1,8 @@
-from enum import Enum
 from dataclasses import dataclass
 
 
 class CARD:
-    class MONSTER(Enum):
+    class MONSTER:
         NORMAL = "通常"
         EFFECT = "效果"
         RITUAL = "仪式"
@@ -13,7 +12,7 @@ class CARD:
         PENDULUM = "灵摆"
         LINK = "连接"
 
-    class SPELL(Enum):
+    class SPELL:
         NORMAL = "通常"
         FIELD = "场地"
         EQUIP = "装备"
@@ -21,22 +20,22 @@ class CARD:
         QUICK_PLAY = "速攻"
         RITUAL = "仪式"
 
-    class TRAP(Enum):
+    class TRAP:
         NORMAL = "通常"
         CONTINUOUS = "永续"
         COUNTER = 1
 
 
-class SPECIES(Enum):
+class SPECIES:
     MAGICIAN = 1
 
 
-class SUMMON_TYPE(Enum):
+class SUMMON_TYPE:
     NORMAL = 1
     SPECIAL = 2
 
 
-class ATTRIBUTE(Enum):
+class ATTRIBUTE:
     LIGHT = "光"
     DARK = "暗"
     FIRE = "炎"
@@ -46,8 +45,8 @@ class ATTRIBUTE(Enum):
     DIVINE = "神"
 
 
-class PHASE(Enum):
-    START = 1
+class PHASE:
+    START = "开始阶段"  # draw 5
     DRAW = "抽卡阶段"
     STANDBY = "准备阶段"
     MAIN1 = "主要阶段1"
@@ -60,10 +59,11 @@ class PHASE(Enum):
         MAIN1: [BATTLE, END],
         BATTLE: [MAIN2],
         MAIN2: [END],
+        END: [DRAW],
     }
 
 
-class ZoneType(Enum):
+class ZoneType:
     HAND = "手牌"
     MONSTER = "怪兽区"
     SPELL_TRAP = "魔陷区"
@@ -77,15 +77,3 @@ class ZoneType(Enum):
 class ZONE:
     SELF = ZoneType
     OPPONENT = ZoneType
-
-
-class Event:
-    def __init__(self):
-        pass
-
-
-@dataclass
-class Movement(Event):
-    card: CARD
-    _from: ZONE
-    to: ZONE
