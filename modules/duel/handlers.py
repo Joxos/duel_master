@@ -1,38 +1,14 @@
 from loguru import logger
-from events import subscribe, Event, event_manager
-from modules.duel import Player, Duel
-from modules.duel.actions import show_actions
-
-duel = None
-
-
-class DuelInitialize(Event):
-    def __init__(self, player_1: Player, player_2: Player):
-        super().__init__()
-        self.player_1 = player_1
-        self.player_2 = player_2
-
-
-class DuelStart(Event):
-    def __init__(self):
-        super().__init__()
-
-
-class ShowAndGetAction(Event):
-    def __init__(self):
-        super().__init__()
-
-
-class PerformAction(Event):
-    def __init__(self, action):
-        super().__init__()
-        self.action = action
-
-
-class TurnChance(Event):
-    def __init__(self, player: Player):
-        super().__init__()
-        self.player = player
+from events import subscribe, event_manager
+from .models import Duel
+from .actions import show_actions, available_actions
+from .events import (
+    DuelInitialize,
+    DuelStart,
+    ShowAndGetAction,
+    PerformAction,
+    TurnChance,
+)
 
 
 @subscribe(DuelInitialize)
@@ -58,7 +34,7 @@ def on_show_and_get_action(event: ShowAndGetAction):
         logger.info("Prompting player for action.")
         action = None
         while not action:
-            actions = duel.available_actions()
+            actions = available_actions(duel)
             show_actions(actions)
             try:
                 choice = int(input("Choose an action: "))

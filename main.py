@@ -1,5 +1,5 @@
 from modules import discover_modules
-from modules.duel import Player, Deck
+from modules.duel.models import Player, Deck
 from modules.duel.handlers import DuelInitialize
 from events import event_manager
 
