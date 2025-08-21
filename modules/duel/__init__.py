@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE
 from events import Event
 from typing import Callable
-from actions import NextPhase
+from modules.duel.actions import NextPhase
 
 
 @dataclass
@@ -59,6 +59,7 @@ class Duel:
         self.player_2 = player_2
         self.current_phase = PHASE.START
         self.turn_count = 1
+        self.current_player = player_1
 
     def available_phases(self):
         return PHASE.CONSEQUENCE[self.current_phase]
@@ -82,5 +83,3 @@ class Duel:
             self.next_phase(action.to)
         else:
             raise NotImplementedError(f"Action {action} is not implemented.")
-
-subscriptions = {}

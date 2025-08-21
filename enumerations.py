@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-
-
 class CARD:
     class MONSTER:
         NORMAL = "通常"
@@ -57,9 +54,10 @@ class PHASE:
         START: [STANDBY],
         STANDBY: [MAIN1],
         MAIN1: [BATTLE, END],
-        BATTLE: [MAIN2],
+        BATTLE: [MAIN2, END],
         MAIN2: [END],
         END: [DRAW],
+        DRAW: [STANDBY],
     }
 
 

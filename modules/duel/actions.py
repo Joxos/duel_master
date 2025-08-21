@@ -1,10 +1,12 @@
 from dataclasses import dataclass
 from enumerations import PHASE
 
+
 @dataclass
 class NextPhase:
     _from: PHASE
     to: PHASE
+
 
 def show_actions(actions):
     print("Available actions:")
