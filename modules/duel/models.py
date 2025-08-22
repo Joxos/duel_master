@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE
-from events import Event
+from moduvent import Event
 from typing import Callable
-from loguru import logger
+from .log import logger
 
 
 @dataclass
@@ -63,3 +63,6 @@ class Duel:
         logger.info(
             f"Duel initialized between {player_1} and {player_2}. Starting phase: {self.current_phase}"
         )
+
+    def other_player(self, player: Player) -> Player:
+        return self.player_1 if player == self.player_2 else self.player_2

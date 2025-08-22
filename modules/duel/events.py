@@ -1,4 +1,4 @@
-from events import Event
+from moduvent import Event
 from .models import Player
 
 

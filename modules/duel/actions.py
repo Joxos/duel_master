@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from enumerations import PHASE
-from loguru import logger
+from .log import logger
 from .models import Duel
+from moduvent import event_manager
+from .events import TurnChance
 
 
 class Action:
@@ -43,9 +45,10 @@ def next_phase(duel: Duel, phase: PHASE):
 
 
 def available_actions(duel: Duel):
-    actions = []
-    for phase in PHASE.CONSEQUENCE[duel.current_phase]:
-        actions.append(NextPhase(_from=duel.current_phase, to=phase))
+    actions = [
+        NextPhase(_from=duel.current_phase, to=phase)
+        for phase in PHASE.CONSEQUENCE[duel.current_phase]
+    ]
     logger.debug(f"Available actions in phase {duel.current_phase}: {actions}")
     return actions
 
@@ -53,7 +56,9 @@ def available_actions(duel: Duel):
 def perform_action(duel: Duel, action: Action):
     if isinstance(action, NextPhase):
         logger.info(f"Performing action: NextPhase from {action._from} to {action.to}")
-        duel.next_phase(action.to)
+        if action.to == PHASE.DRAW:
+            event_manager.emit(TurnChance(duel.current_player))
+        next_phase(duel, action.to)
     else:
         logger.warning(f"Action {action} is not implemented.")
         raise NotImplementedError(f"Action {action} is not implemented.")

@@ -1,7 +1,7 @@
-from loguru import logger
-from events import subscribe, event_manager
+from .log import logger
+from moduvent import subscribe, event_manager
 from .models import Duel
-from .actions import show_actions, available_actions
+from .actions import show_actions, available_actions, perform_action
 from .events import (
     DuelInitialize,
     DuelStart,
@@ -53,7 +53,7 @@ def on_perform_action(event: PerformAction):
     if duel:
         logger.info(f"Performing action: {event.action}")
         try:
-            duel.perform_action(event.action)
+            perform_action(duel, event.action)
             logger.success("Action performed successfully.")
         except Exception as e:
             logger.error(f"Error performing action: {e}")

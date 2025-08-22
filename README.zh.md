@@ -30,7 +30,8 @@
 modules/
   your_module/
     __init__.py
-    events.py      # 定义事件类和事件处理函数
+    handlers.py    # 注册事件监听
+    events.py      # （可选）定义事件类和事件处理函数
     models.py      # （可选）模块数据模型
     handlers.py    # （可选）模块业务逻辑
     ...
