@@ -12,4 +12,3 @@ class Action:
 class NextPhase(Action):
     _from: PHASE
     to: PHASE
-

@@ -125,7 +125,6 @@ class Duel:
             if isinstance(action, NextPhase):
                 print(f"{index}: Change phase from {action._from} to {action.to}")
 
-
     def show_and_get_action(self):
         logger.info("Prompting player for action.")
         action = None

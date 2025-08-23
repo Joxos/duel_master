@@ -22,14 +22,17 @@ def on_duel_start(event: DuelStart):
     logger.info("Duel started.")
     event_manager.emit(ShowAndGetAction(event.duel))
 
+
 @subscribe(NextTurn)
 def on_turn_chance(event: NextTurn):
     event.duel.next_turn()
     event.duel.verbose_state()
 
+
 @subscribe(ShowAndGetAction)
 def on_show_and_get_action(event: ShowAndGetAction):
     event.duel.show_and_get_action()
+
 
 @subscribe(PerformAction)
 def on_perform_action(event: PerformAction):
