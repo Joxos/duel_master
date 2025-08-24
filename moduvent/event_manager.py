@@ -68,14 +68,20 @@ class EventManager:
         while self._callstack:
             callback = self._callstack.popleft()
             callback, event = callback.func, callback.event
-            try:
-                logger.debug(f"Processing callstack callback: {callback.__name__}")
-                if hasattr(callback, "__self__") and callback.__self__:
-                    original_func = callback.__func__
-                    bound_instance = callback.__self__
+        logger.debug(f"Processing callstack callback: {callback.__name__}")
+        if hasattr(callback, "__self__") and callback.__self__:
+            original_func = callback.__func__
+            bound_instance = callback.__self__
 
-                    original_func(bound_instance, event)
-                else:
-                    callback(event)
-            except Exception as e:
-                logger.error(f"Error in callstack callback {callback.__name__}: {e}")
+            @logger.catch
+            def wrapper():
+                original_func(bound_instance, event)
+
+            wrapper()
+        else:
+
+            @logger.catch
+            def wrapper():
+                callback(event)
+
+            wrapper()

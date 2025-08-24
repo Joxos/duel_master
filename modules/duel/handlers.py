@@ -37,9 +37,6 @@ def on_show_and_get_action(event: ShowAndGetAction):
 @subscribe(PerformAction)
 def on_perform_action(event: PerformAction):
     logger.info(f"Performing action: {event.action}")
-    try:
-        event.duel.perform_action(event.action)
-        logger.success("Action performed successfully.")
-    except Exception as e:
-        logger.error(f"Error performing action: {e}")
+    event.duel.perform_action(event.action)
+    logger.success("Action performed successfully.")
     event_manager.emit(ShowAndGetAction(event.duel))

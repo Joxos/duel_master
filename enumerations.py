@@ -43,7 +43,6 @@ class ATTRIBUTE:
 
 
 class PHASE:
-    START = "开始阶段"  # draw 5
     DRAW = "抽卡阶段"
     STANDBY = "准备阶段"
     MAIN1 = "主要阶段1"
@@ -51,13 +50,12 @@ class PHASE:
     MAIN2 = "主要阶段2"
     END = "结束阶段"
     CONSEQUENCE = {
-        START: [STANDBY],
+        DRAW: [STANDBY],
         STANDBY: [MAIN1],
         MAIN1: [BATTLE, END],
         BATTLE: [MAIN2, END],
         MAIN2: [END],
         END: [DRAW],
-        DRAW: [STANDBY],
     }
 
 

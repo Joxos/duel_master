@@ -60,7 +60,7 @@ class Duel:
     def __init__(self, player_1: Player, player_2: Player):
         self.player_1 = player_1
         self.player_2 = player_2
-        self.current_phase = PHASE.START
+        self.current_phase = PHASE.DRAW
         self.turn_count = 1
         self.current_player = player_1
         self.waiting_player = player_2
@@ -90,6 +90,7 @@ class Duel:
         logger.debug(f"Available actions in phase {self.current_phase}: {actions}")
         return actions
 
+    @logger.catch
     def perform_action(self, action: "Action"):
         if isinstance(action, NextPhase):
             logger.info(
