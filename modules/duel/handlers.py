@@ -1,6 +1,7 @@
 from .log import logger
 from sys import exit
 from moduvent import subscribe, event_manager
+from enumerations import PHASE
 from .models import Duel
 from .events import (
     DuelInitialize,
@@ -10,6 +11,7 @@ from .events import (
     NextTurn,
     DuelPreparation,
     DuelEnd,
+    EnterPhase,
 )
 
 
@@ -69,3 +71,9 @@ def on_perform_action(event: PerformAction):
 def on_duel_end(event: DuelEnd):
     logger.info(f"Duel ended due to: {event.reason}. Winner: {event.win_player}")
     exit(0)
+
+
+@subscribe(EnterPhase)
+def draw_when_in_draw_phase(event: EnterPhase):
+    if event.phase == PHASE.DRAW:
+        event.duel.draw(event.duel.current_player)

@@ -5,7 +5,7 @@ from typing import Callable
 from .log import logger
 from .actions import NextPhase, Action
 from moduvent import event_manager
-from .events import NextTurn, PerformAction, DuelEnd
+from .events import NextTurn, PerformAction, DuelEnd, EnterPhase
 import random
 
 
@@ -82,6 +82,7 @@ class Duel:
         if phase in PHASE.CONSEQUENCE[self.current_phase]:
             logger.info(f"Phase changing from {self.current_phase} to {phase}")
             self.current_phase = phase
+            event_manager.emit(EnterPhase(self, phase))
         else:
             logger.error(
                 f"Incorrect phase change attempted: from {self.current_phase} to {phase}"
@@ -144,7 +145,6 @@ class Duel:
                 logger.warning("Invalid action choice entered.")
                 print("Invalid choice. Please try again.")
         event_manager.emit(PerformAction(self, action))
-        logger.debug("PerformAction event emitted.")
         logger.debug("PerformAction event emitted.")
 
     def draw(self, player: Player, count: int = 1):
