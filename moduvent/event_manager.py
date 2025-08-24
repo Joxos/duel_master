@@ -26,7 +26,7 @@ class Callback:
 class EventManager:
     def __init__(self):
         self._callbacks: Dict[Type[Event], List[Callback]] = {}
-        self._callstack: Deque[Callback] = deque()
+        self._callqueue: Deque[Callback] = deque()
 
     def subscribe(self, *event_types: Type[Event], _self: Type = None):
         def decorator(func: Callable[[Event], None]):
@@ -35,7 +35,7 @@ class EventManager:
                     func, event_type, args={"self": _self} if _self else {}
                 )
                 self._callbacks.setdefault(event_type, []).append(callback)
-                logger.info(
+                logger.debug(
                     f"Subscribed function {func.__name__} to {event_type.__name__}"
                 )
             return func
@@ -47,41 +47,46 @@ class EventManager:
         logger.debug(f"Emitting event: {event_type.__name__}")
 
         if event_type in self._callbacks:
-            logger.info(
+            logger.debug(
                 f"Found {len(self._callbacks[event_type])} callbacks for event type: {event_type.__name__}"
             )
             for callback in self._callbacks[event_type]:
                 callback_copy = Callback(callback.func, event)
-                self._callstack.append(callback_copy)
+                self._callqueue.append(callback_copy)
 
-            # trigger parent class events using callstack
+            # trigger parent class events using callqueue
             # for cls in event_type.__mro__[1:]:  # skip self
             #     if cls in self._callbacks and cls != Event:
             #         logger.info(f"Triggering parent class callbacks for: {cls.__name__}")
             #         for callback in self._callbacks[cls]:
             #             callback_copy = Callback(callback.func, event)
-            #             self._callstack.append(callback_copy)
+            #             self._callqueue.append(callback_copy)
 
-            self.process_callstack()
+            self.verbose_callqueue()
+            self.process_callqueue()
 
-    def process_callstack(self):
-        while self._callstack:
-            callback = self._callstack.popleft()
+    def process_callqueue(self):
+        while self._callqueue:
+            callback = self._callqueue.popleft()
             callback, event = callback.func, callback.event
-        logger.debug(f"Processing callstack callback: {callback.__name__}")
-        if hasattr(callback, "__self__") and callback.__self__:
-            original_func = callback.__func__
-            bound_instance = callback.__self__
+            logger.debug(f"Processing callqueue callback: {callback.__name__}")
+            if hasattr(callback, "__self__") and callback.__self__:
+                original_func = callback.__func__
+                bound_instance = callback.__self__
 
-            @logger.catch
-            def wrapper():
-                original_func(bound_instance, event)
+                @logger.catch
+                def wrapper():
+                    original_func(bound_instance, event)
 
-            wrapper()
-        else:
+                wrapper()
+            else:
 
-            @logger.catch
-            def wrapper():
-                callback(event)
+                @logger.catch
+                def wrapper():
+                    callback(event)
 
-            wrapper()
+                wrapper()
+
+    def verbose_callqueue(self):
+        for callback in self._callqueue:
+            logger.debug(f"Callback in callqueue: {callback.func.__name__}")

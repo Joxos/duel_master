@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE
+from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE, END_REASON
 from moduvent import Event
 from typing import Callable
 from .log import logger
 from .actions import NextPhase, Action
 from moduvent import event_manager
-from .events import NextTurn, PerformAction
+from .events import NextTurn, PerformAction, DuelEnd
+import random
 
 
 @dataclass
@@ -49,11 +50,15 @@ class Deck:
     def __init__(self, cards: list):
         self.cards = cards
 
+    def shuffle(self):
+        random.shuffle(self.cards)
+
 
 class Player:
-    def __init__(self, main_deck: Deck, extra_deck: Deck):
+    def __init__(self, main_deck: Deck, extra_deck: Deck, hand: Deck = Deck([])):
         self.main_deck = main_deck
         self.extra_deck = extra_deck
+        self.hand = hand
 
 
 class Duel:
@@ -90,7 +95,6 @@ class Duel:
         logger.debug(f"Available actions in phase {self.current_phase}: {actions}")
         return actions
 
-    @logger.catch
     def perform_action(self, action: "Action"):
         if isinstance(action, NextPhase):
             logger.info(
@@ -142,3 +146,31 @@ class Duel:
         event_manager.emit(PerformAction(self, action))
         logger.debug("PerformAction event emitted.")
         logger.debug("PerformAction event emitted.")
+
+    def draw(self, player: Player, count: int = 1):
+        for _ in range(count):
+            if player.main_deck.cards:
+                card = player.main_deck.cards.pop()
+                player.hand.cards.append(card)
+                logger.info(f"{player} drew card: {card.name}")
+            else:
+                logger.warning(f"{player}'s main deck is empty. Cannot draw card.")
+                self.duel_end(END_REASON.DECK_OUT, self.waiting_player)
+
+    def shuffle_deck(self, player: Player):
+        player.main_deck.cards = player.main_deck.cards[:]
+        random.shuffle(player.main_deck.cards)
+        logger.info(f"{player}'s main deck has been shuffled.")
+
+    def duel_end(self, reason: END_REASON, winner: Player):
+        event_manager.emit(DuelEnd(self, reason, winner))
+
+    def initial_draw(self):
+        logger.info("Performing initial draw.")
+        self.draw(self.player_1, 5)
+        self.draw(self.player_2, 5)
+
+    def verbose_deck(self, player: Player):
+        logger.info(f"{player}'s Decks:")
+        for card in player.main_deck.cards:
+            logger.info(f"{card.name}")

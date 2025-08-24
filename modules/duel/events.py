@@ -1,4 +1,5 @@
 from moduvent import Event
+from enumerations import END_REASON
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -13,12 +14,24 @@ class DuelInitialize(Event):
 
 
 class DuelStateEvent(Event):
+    """
+    Every DuelStateEvent requires a Duel instance.
+    This can be helpful when server has multiple duels to manage.
+    """
+
     def __init__(self, duel: "Duel"):
         super().__init__()
         self.duel = duel
 
 
 class DuelStart(DuelStateEvent):
+    def __init__(self, duel: "Duel"):
+        super().__init__(duel)
+
+
+class DuelPreparation(DuelStateEvent):
+    """Do preparations here."""
+
     def __init__(self, duel: "Duel"):
         super().__init__(duel)
 
@@ -38,3 +51,16 @@ class NextTurn(DuelStateEvent):
     def __init__(self, duel: "Duel", player: "Player"):
         super().__init__(duel)
         self.player = player
+
+
+class EnterPhase(DuelStateEvent):
+    def __init__(self, duel: "Duel", phase):
+        super().__init__(duel)
+        self.phase = phase
+
+
+class DuelEnd(DuelStateEvent):
+    def __init__(self, duel: "Duel", reason: END_REASON, win_player: "Player"):
+        super().__init__(duel)
+        self.reason = reason
+        self.win_player = win_player
