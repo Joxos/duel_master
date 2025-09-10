@@ -1,18 +1,29 @@
 from dataclasses import dataclass
-from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE, END_REASON
-from moduvent import Event
-from typing import Callable
+from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE, END_REASON, UNIT, CHECK_TYPE
 from .log import logger
 from .actions import NextPhase, Action
 from moduvent import event_manager
 from .events import NextTurn, PerformAction, DuelEnd, EnterPhase
+from typing import Callable
 import random
 
 
+
+@dataclass
+class Times:
+    unit: UNIT
+    check_type: CHECK_TYPE
+    times: int
+
+class Checkable:
+    def check(self, duel: "Duel"):
+        pass
+
 @dataclass
 class Effect:
-    inductions: dict[Event, Callable]
-
+    times: Times
+    conditions: list[Checkable] = None
+    effect: Callable[["Duel"], None]
 
 @dataclass
 class Card:
@@ -69,6 +80,7 @@ class Duel:
         self.turn_count = 1
         self.current_player = player_1
         self.waiting_player = player_2
+        self.occasions = []
         logger.info(
             f"Duel initialized between {player_1} and {player_2}. Starting phase: {self.current_phase}"
         )
