@@ -1,27 +1,27 @@
-from modules.duel.models import Player, Deck, Card
-from modules.duel.handlers import DuelInitialize
-from moduvent import event_manager, discover_modules
+from duel.models import Player, Duel
+from log import logger
 import random
-import string
-
-
-def generate_random_string(length=10):
-    chars = []
-    for _ in range(length):
-        char = random.choice(string.ascii_letters)
-        chars.append(char)
-    return "".join(chars)
 
 
 if __name__ == "__main__":
-    discover_modules("modules")
     # random card characters
     player_1 = Player(
-        main_deck=Deck([Card(generate_random_string(), None, None) for _ in range(40)]),
-        extra_deck=Deck([]),
+        main_deck=[],
+        extra_deck=[],
     )
     player_2 = Player(
-        main_deck=Deck([Card(generate_random_string(), None, None) for _ in range(40)]),
-        extra_deck=Deck([]),
+        main_deck=[],
+        extra_deck=[],
     )
-    event_manager.emit(DuelInitialize(player_1=player_1, player_2=player_2))
+    duel = Duel(player_1, player_2)
+    duel.setup()
+    while not duel.winner:
+        actions = duel.available_actions()
+        if not actions:
+            logger.info("No available actions, ending duel.")
+            break
+        action = random.choice(actions)
+        logger.info(f"Current Phase: {duel.phase}, Action: {action}")
+        duel.perform_action(action)
+    logger.info(f"Duel ended. Winner: {duel.winner}")
+    logger.info(f"Total Turns: {duel.turn_count}")

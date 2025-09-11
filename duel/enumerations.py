@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+
 class CARD:
     class MONSTER:
         NORMAL = "通常"
@@ -37,6 +40,7 @@ class ATTRIBUTE:
     WIND = "风"
     DIVINE = "神"
 
+
 class RACE:
     DRAGON = "龙"
     WARRIOR = "战士"
@@ -62,16 +66,19 @@ class RACE:
     CYBERSE = "电子界"
     ILLUSION = "幻想魔"
 
+
 class PHASE:
     DRAW = "抽卡阶段"
     STANDBY = "准备阶段"
     MAIN1 = "主要阶段1"
+
     class BATTLE:
         START = "战斗开始"
         STEP = "战斗步骤"
         DAMAGE = "伤害步骤"
         DAMAGE_CALCULATION = "伤害计算时"
         END = "战斗阶段结束"
+
     MAIN2 = "主要阶段2"
     END = "结束阶段"
     CONSEQUENCE = {
@@ -112,14 +119,24 @@ class ZONE:
     SELF = ZoneType
     OPPONENT = ZoneType
 
-class CARD_STATUS:
-    class POSITION:
-        ATTACK = "攻击"
-        DEFENSE = "守备"
-        
-    class FACE:
-        UP = "表侧"
-        DOWN = "里侧"
+
+class POSITION:
+    ATTACK = "攻击"
+    DEFENSE = "守备"
+    NONE = "无"
+
+
+class FACE:
+    UP = "表侧"
+    DOWN = "里侧"
+    NONE = "无"
+
+
+@dataclass
+class CardStatus:
+    position: POSITION
+    face: FACE
+
 
 class END_REASON:
     LIFE_POINTS = "生命值归零"
@@ -127,13 +144,16 @@ class END_REASON:
     SURRENDER = "认输"
     TIME_OUT = "时间到"
 
+
 class UNIT:
     TURN = "回合"
     DUEL = "决斗"
 
+
 class CHECK_TYPE:
     CARD = "卡片"
     NAME = "卡名"
+
 
 class SUMMON_TYPE:
     NORMAL = "通常召唤"
@@ -147,6 +167,7 @@ class SUMMON_TYPE:
     XYZ = "超量召唤"
     LINK = "连接召唤"
     PENDULUM = "灵摆召唤"
+
 
 class LINK_MARKER:
     TOP_LEFT = "左上"

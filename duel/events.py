@@ -1,5 +1,5 @@
 from moduvent import Event
-from enumerations import END_REASON
+from .enumerations import END_REASON
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -58,10 +58,12 @@ class EnterPhase(DuelStateEvent):
         super().__init__(duel)
         self.phase = phase
 
+
 class ExitPhase(DuelStateEvent):
     def __init__(self, duel: "Duel", phase):
         super().__init__(duel)
         self.phase = phase
+
 
 class OnNormalSummon(DuelStateEvent):
     def __init__(self, duel: "Duel", player: "Player", card: "Card"):
@@ -69,11 +71,13 @@ class OnNormalSummon(DuelStateEvent):
         self.player = player
         self.card = card
 
+
 class OnSpecialSummon(DuelStateEvent):
     def __init__(self, duel: "Duel", player: "Player", card: "Card"):
         super().__init__(duel)
         self.player = player
         self.card = card
+
 
 class DuelEnd(DuelStateEvent):
     def __init__(self, duel: "Duel", reason: END_REASON, win_player: "Player"):
