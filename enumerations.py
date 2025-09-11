@@ -28,15 +28,6 @@ class CARD:
         COUNTER = "反击"
 
 
-class SPECIES:
-    MAGICIAN = 1
-
-
-class SUMMON_TYPE:
-    NORMAL = 1
-    SPECIAL = 2
-
-
 class ATTRIBUTE:
     LIGHT = "光"
     DARK = "暗"

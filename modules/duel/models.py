@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from enumerations import CARD, ATTRIBUTE, SPECIES, PHASE, END_REASON, UNIT, CHECK_TYPE
+from enumerations import CARD, ATTRIBUTE, RACE, PHASE, END_REASON, UNIT, CHECK_TYPE
+from occasions import Occasion
 from .log import logger
 from .actions import NextPhase, Action
 from moduvent import event_manager
@@ -37,7 +38,7 @@ class MonsterCard(Card):
     attribute: ATTRIBUTE
     attack: int
     monster_type: CARD.MONSTER
-    species: SPECIES
+    race: RACE
 
 
 @dataclass
@@ -80,7 +81,7 @@ class Duel:
         self.turn_count = 1
         self.current_player = player_1
         self.waiting_player = player_2
-        self.occasions = []
+        self.occasions: list[Occasion] = []
         logger.info(
             f"Duel initialized between {player_1} and {player_2}. Starting phase: {self.current_phase}"
         )
@@ -101,10 +102,11 @@ class Duel:
             )
 
     def available_actions(self):
-        actions = [
-            NextPhase(_from=self.current_phase, to=phase)
-            for phase in PHASE.CONSEQUENCE[self.current_phase]
-        ]
+        actions = []
+        # NextPhase actions
+        for phase in PHASE.CONSEQUENCE[self.current_phase]:
+            actions.append(NextPhase(_from=self.current_phase, to=phase))
+        # Normal Summon action
         logger.debug(f"Available actions in phase {self.current_phase}: {actions}")
         return actions
 
