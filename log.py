@@ -6,4 +6,6 @@ logger.add(
     sys.stdout,
     colorize=True,
     format="<green>{time}</green> | {extra[source]} | <level>{message}</level>",
+    level="INFO",
 )
+logger = logger.bind(source="main")

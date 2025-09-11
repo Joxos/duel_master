@@ -1,6 +1,6 @@
 from duel.models import Player, Duel
+from duel.actions import show_action
 from log import logger
-import random
 
 
 if __name__ == "__main__":
@@ -20,8 +20,14 @@ if __name__ == "__main__":
         if not actions:
             logger.info("No available actions, ending duel.")
             break
-        action = random.choice(actions)
-        logger.info(f"Current Phase: {duel.phase}, Action: {action}")
-        duel.perform_action(action)
+        show_action(actions)
+        action_index = input("Choose an action index: ")
+        try:
+            action_index = int(action_index)
+            action = actions[action_index]
+        except (ValueError, IndexError):
+            logger.warning("Invalid action index, please try again.")
+            continue
+        action.perform(duel)
     logger.info(f"Duel ended. Winner: {duel.winner}")
     logger.info(f"Total Turns: {duel.turn_count}")

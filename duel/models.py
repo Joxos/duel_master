@@ -11,7 +11,8 @@ from .enumerations import (
     FACE,
 )
 from .occasions import Occasion
-from .actions import Action
+from .actions import Action, NextPhase
+from .log import logger
 import random
 
 
@@ -79,11 +80,22 @@ class Player:
         self.field_zone: CardInPlay | None = None
         self.banished: list[CardInPlay] = []
 
+    def __str__(self):
+        return f"Player({id(self) % 1000})"
+
 
 class PhaseWithPlayer:
     def __init__(self, phase: PHASE, player: Player):
         self.phase = phase
         self.player = player
+
+    def __eq__(self, value):
+        if not isinstance(value, PhaseWithPlayer):
+            return False
+        return self.phase == value.phase and self.player == value.player
+
+    def __str__(self):
+        return f"Phase: {self.phase}, Player: {self.player}"
 
 
 class History:
@@ -119,8 +131,39 @@ class Duel:
 
     def setup(self):
         # actions
+        # NextPhase actions
+        for from_phase in PHASE.CONSEQUENCE:
+            for to_phase in PHASE.CONSEQUENCE[from_phase]:
+                if from_phase == PHASE.END and to_phase == PHASE.DRAW:
+                    self.actions.append(
+                        NextPhase(
+                            _from=PhaseWithPlayer(from_phase, self.player_1),
+                            to=PhaseWithPlayer(to_phase, self.player_2),
+                        )
+                    )
+                    self.actions.append(
+                        NextPhase(
+                            _from=PhaseWithPlayer(from_phase, self.player_2),
+                            to=PhaseWithPlayer(to_phase, self.player_1),
+                        )
+                    )
+                else:
+                    self.actions.append(
+                        NextPhase(
+                            _from=PhaseWithPlayer(from_phase, self.player_1),
+                            to=PhaseWithPlayer(to_phase, self.player_1),
+                        )
+                    )
+                    self.actions.append(
+                        NextPhase(
+                            _from=PhaseWithPlayer(from_phase, self.player_2),
+                            to=PhaseWithPlayer(to_phase, self.player_2),
+                        )
+                    )
+        # verbose self.actions
         for action in self.actions:
-            action.duel = self
+            if isinstance(action, NextPhase):
+                logger.info(f"NextPhase from {action._from} to {action.to}")
 
         # cards
         for card in (
@@ -137,6 +180,26 @@ class Duel:
 
         random.shuffle(self.player_1.main_deck)
         random.shuffle(self.player_2.main_deck)
+
+    def current_player(self) -> Player:
+        return self.phase.player
+
+    def waiting_player(self) -> Player:
+        return self.player_1 if self.phase.player == self.player_2 else self.player_2
+
+    def next_phase(self, phase: PhaseWithPlayer):
+        self.phase = phase
+        if self.phase.phase == PHASE.DRAW:
+            self.turn_count += 1
+            self.phase.player = phase.player
+        logger.info(f"Phase changed to {self.phase}. Turn count: {self.turn_count}")
+
+    def available_actions(self):
+        actions = []
+        for action in self.actions:
+            if action.available(self):
+                actions.append(action)
+        return actions
 
     # def available_phases(self):
     #     phases = PHASE.CONSEQUENCE[self.phase]

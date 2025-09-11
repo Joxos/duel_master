@@ -86,7 +86,18 @@ class PHASE:
         STANDBY: [MAIN1],
         MAIN1: [BATTLE, END],
         BATTLE: [MAIN2, END],
+        # BATTLE.START: [BATTLE.STEP],
+        # BATTLE.STEP: [BATTLE.DAMAGE],
+        # BATTLE.DAMAGE: [BATTLE.DAMAGE_CALCULATION],
+        # BATTLE.DAMAGE_CALCULATION: [BATTLE.END],
+        # BATTLE.END: [BATTLE, MAIN2, END],
         MAIN2: [END],
+        END: [DRAW],
+    }
+    CONSEQUENCE_OF_TURN_1 = {
+        DRAW: [STANDBY],
+        STANDBY: [MAIN1],
+        MAIN1: [END],
         END: [DRAW],
     }
 
