@@ -134,30 +134,14 @@ class Duel:
         # NextPhase actions
         for from_phase in PHASE.CONSEQUENCE:
             for to_phase in PHASE.CONSEQUENCE[from_phase]:
-                if from_phase == PHASE.END and to_phase == PHASE.DRAW:
+                turning = from_phase == PHASE.END and to_phase == PHASE.DRAW
+                other_map = {self.player_1: self.player_2, self.player_2: self.player_1}
+                for player in [self.player_1, self.player_2]:
+                    target_player = other_map[player] if turning else player
                     self.actions.append(
                         NextPhase(
-                            _from=PhaseWithPlayer(from_phase, self.player_1),
-                            to=PhaseWithPlayer(to_phase, self.player_2),
-                        )
-                    )
-                    self.actions.append(
-                        NextPhase(
-                            _from=PhaseWithPlayer(from_phase, self.player_2),
-                            to=PhaseWithPlayer(to_phase, self.player_1),
-                        )
-                    )
-                else:
-                    self.actions.append(
-                        NextPhase(
-                            _from=PhaseWithPlayer(from_phase, self.player_1),
-                            to=PhaseWithPlayer(to_phase, self.player_1),
-                        )
-                    )
-                    self.actions.append(
-                        NextPhase(
-                            _from=PhaseWithPlayer(from_phase, self.player_2),
-                            to=PhaseWithPlayer(to_phase, self.player_2),
+                            _from=PhaseWithPlayer(from_phase, player),
+                            to=PhaseWithPlayer(to_phase, target_player),
                         )
                     )
         # verbose self.actions

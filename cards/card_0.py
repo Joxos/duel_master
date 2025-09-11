@@ -1,5 +1,5 @@
 # Maliss <P> White Rabbit
-from ..duel.models import SimpleMonsterCard, Effect
+from duel.models import SimpleMonsterCard, Effect
 from duel.enumerations import CARD, ATTRIBUTE, RACE
 
 
