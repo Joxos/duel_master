@@ -1,6 +1,7 @@
 # Maliss <P> White Rabbit
 from duel.models import SimpleMonsterCard, Effect
 from duel.enumerations import CARD, ATTRIBUTE, RACE
+from .actions import CardNameOnePerTurnEffect, WhenSummonOrSpecialSummonOccasion
 
 
 class MalissWhiteRabbit(SimpleMonsterCard):
@@ -16,7 +17,8 @@ class MalissWhiteRabbit(SimpleMonsterCard):
             race=RACE.CYBERSE,
             effects=[
                 Effect(
-                    conditions=[],
+                    index=1,
+                    conditions=[CardNameOnePerTurnEffect(), WhenSummonOrSpecialSummonOccasion()],
                     effect=lambda duel: None,
                 )
             ],

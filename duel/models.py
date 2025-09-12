@@ -10,7 +10,6 @@ from .enumerations import (
     POSITION,
     FACE,
 )
-from .occasions import Occasion
 from .actions import Action, NextPhase
 from .log import logger
 import random
@@ -25,8 +24,15 @@ class Times:
 
 @dataclass
 class Effect:
+    owner: "Card"
+    index: int
     effect: list[Action]
     conditions: list[Action] = None
+
+    def __eq__(self, value):
+        if not isinstance(value, Effect):
+            return False
+        return self.owner == value.owner and self.index == value.index
 
 
 @dataclass
@@ -34,6 +40,7 @@ class Card:
     name: str
     card_type: CARD
     effects: list[Effect]
+    index: int = None
 
 
 @dataclass
@@ -115,6 +122,11 @@ class History:
                     return self.actions[i + 1 :]
         return []
 
+    def __str__(self):
+        if not self.actions:
+            return "Empty history"
+        return "\n".join(f"{i+1}. {action}" for i, action in enumerate(self.actions))
+
 
 class Duel:
     def __init__(self, player_1: Player, player_2: Player):
@@ -122,7 +134,7 @@ class Duel:
         self.player_2 = player_2
         self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
         self.turn_count = 1
-        self.occasions: list[Occasion] = []
+        self.occasions: list[Action] = []
         self.all_cards: list[CardInPlay] = []
         self.winner: Player | None = None
         self.actions: list[Action] = []
@@ -150,12 +162,13 @@ class Duel:
                 logger.info(f"NextPhase from {action._from} to {action.to}")
 
         # cards
-        for card in (
+        for i, card in enumerate(
             self.player_1.main_deck
             + self.player_1.extra_deck
             + self.player_2.main_deck
             + self.player_2.extra_deck
         ):
+            card.index = i
             self.all_cards.append(
                 CardInPlay(
                     card=card, status=CardStatus(position=POSITION.NONE, face=FACE.NONE)

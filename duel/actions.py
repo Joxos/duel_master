@@ -1,9 +1,9 @@
-from .enumerations import PHASE
+from .enumerations import PHASE, CARD
 from typing import TYPE_CHECKING
 from .log import logger
 
 if TYPE_CHECKING:
-    from .models import Duel, PhaseWithPlayer
+    from .models import Duel, PhaseWithPlayer, CardInPlay, CardStatus, POSITION, FACE
 
 
 class Action:
@@ -14,7 +14,7 @@ class Action:
         return False
 
     def perform(self, duel: "Duel"):
-        pass
+        duel.history.append(self)
 
 
 class NextPhase(Action):
@@ -51,8 +51,25 @@ class NextPhase(Action):
         return False
 
     def perform(self, duel):
+        super().perform(duel)
         duel.next_phase(self.to)
+        logger.debug(duel.history)
 
+class NormalSummon(Action):
+    def __init__(self, card: "CardInPlay"):
+        self.card = card
+
+    def available(self, duel):
+        if duel.phase.phase == PHASE.MAIN1:
+            if self.card.card.type == CARD.MONSTER:
+                if self.card.card.level <= 4:
+                    return True
+        return False
+
+    def perform(self, duel):
+        super().perform(duel)
+        duel.player.hand.remove(self.card)
+        duel.player.field.append(self.card)
 
 def show_action(actions: list[Action]):
     print("Available actions:")
