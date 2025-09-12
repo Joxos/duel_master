@@ -23,51 +23,52 @@ class NextPhase(Action):
         self.to = to
 
     def available(self, duel: "Duel") -> bool:
-        if duel.phase == self._from:
-            consequence = (
-                PHASE.CONSEQUENCE
-                if duel.turn_count > 1
-                else PHASE.CONSEQUENCE_OF_TURN_1
-            )
-            if self.to.phase in consequence[self._from.phase]:
-                if self._from.phase == PHASE.END and self.to.phase == PHASE.DRAW:
-                    logger.debug(
-                        f"NextPhase action available if {self.to.player} is waiting player ({self.to.player} == {duel.waiting_player()})"
-                    )
-                    return self.to.player == duel.waiting_player()
-                else:
-                    logger.debug(
-                        f"NextPhase action available: valid phase transition from {self._from.phase} to {self.to.phase}"
-                    )
-                    return True
-            else:
-                logger.debug(
-                    f"NextPhase action not available: invalid phase transition from {self._from.phase} to {self.to.phase}"
-                )
+        initial_phase_correct = duel.phase == self._from
+        consequence = (
+            PHASE.CONSEQUENCE if duel.turn_count > 1 else PHASE.CONSEQUENCE_OF_TURN_1
+        )
+        phase_consequence_correct = (
+            self._from.phase in consequence
+            and self.to.phase in consequence[self._from.phase]
+        )
+        player_correct = (
+            self._from.player != self.to.player
+            if self._from.phase == PHASE.END and self.to.phase == PHASE.DRAW
+            else self._from.player == self.to.player
+        )
+        if initial_phase_correct and phase_consequence_correct and player_correct:
+            return True
         else:
             logger.debug(
-                f"NextPhase action not available: current phase {duel.phase}, required {self._from}"
+                f"NextPhase not available: {self._from} -> {self.to} with initial_phase_correct: {initial_phase_correct}, phase_consequence_correct: {phase_consequence_correct}, player_correct: {player_correct}"
             )
-        return False
+            return False
 
     def perform(self, duel):
         super().perform(duel)
         duel.next_phase(self.to)
-        logger.debug(duel.history)
+
+    def __str__(self):
+        return f"Change phase from {self._from} to {self.to}"
 
 
 class NormalSummon(Action):
     def __init__(self, card: "Card"):
         self.card = card
 
-    def available(self, duel):
-        if duel.phase.phase == PHASE.MAIN1:
-            if self.card.card.type == CARD.MONSTER:
-                if self.card.card.level <= 4:
-                    return True
-        return False
+    def available(self, duel: "Duel"):
+        phase_correct = duel.phase.phase in [PHASE.MAIN1, PHASE.MAIN2]
+        card_correct = self.card.type == CARD.MONSTER
+        level_correct = self.card.level <= 4
+        if phase_correct and card_correct and level_correct:
+            return True
+        else:
+            logger.debug(
+                f"NormalSummon not available: {self.card} with phase_correct: {phase_correct}, card_correct: {card_correct}, level_correct: {level_correct}"
+            )
+            return False
 
-    def perform(self, duel):
+    def perform(self, duel: "Duel"):
         super().perform(duel)
         duel.player.hand.remove(self.card)
         duel.player.field.append(self.card)
@@ -76,5 +77,4 @@ class NormalSummon(Action):
 def show_action(actions: list[Action]):
     print("Available actions:")
     for index, action in enumerate(actions):
-        if isinstance(action, NextPhase):
-            print(f"{index}: Change phase from {action._from} to {action.to}")
+        logger.info(f"{index}: {action}")
