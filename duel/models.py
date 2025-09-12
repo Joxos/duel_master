@@ -10,9 +10,9 @@ from .enumerations import (
     EXPRESSION_WAY,
     FACE,
     ZoneType,
-    BELONGING,
+    LOCATION,
 )
-from .actions import Action, NextPhase
+from .actions import Action, NextPhase, NormalSummon
 from .log import logger
 import random
 
@@ -42,36 +42,48 @@ class Card:
     name: str
     card_type: CARD
 
+    # optional
     effects: list[Effect] = None
     attribute: ATTRIBUTE = None
     attack: int = None
+    defense: int = None
+    level: int = None
     monster_type: CARD.MONSTER = None
     race: RACE = None
     links: int = None
-    level: int = None
-    defense: int = None
     psacle: int = None
     peffects: list[Effect] = None
 
-    index: int = None
+    # set in game
     status: CardStatus = None
-    zone: ZoneType = None
-    belonging: BELONGING = None
+    zone: LOCATION = None
+    # set by duel
+    index: int = None
+    belonging: "Player" = None
+
+    def __str__(self):
+        return f"{self.card_type} {self.name}: {self.race}/{self.attribute}, {self.level}⭐, {self.attack}/{self.defense}, {self.index}/{self.status}/{self.zone}/{self.belonging}"
 
 
-@dataclass
 class Player:
     def __init__(
         self, main_deck: list[Card], extra_deck: list[Card], hand: list[Card] = []
     ):
         self.main_deck = main_deck
         self.extra_deck = extra_deck
-        self.hand = hand
+        self.hand = hand.copy()  # !!! If not copy, hand will be shared with other players since they are all referencing the same list as default value.
         self.main_monster_zone: list[Card | None] = [None] * 5
         self.spell_trap_zone: list[Card | None] = [None] * 5
         self.graveyard: list[Card] = []
         self.field_zone: Card | None = None
         self.banished: list[Card] = []
+
+    def allocate_main_monster_zone(self, card: Card):
+        for i in range(5):
+            if self.main_monster_zone[i] is None:
+                self.main_monster_zone[i] = card
+                return i
+        return -1
 
     def __str__(self):
         return f"Player({id(self) % 1000})"
@@ -123,6 +135,7 @@ class Duel:
     def __init__(self, player_1: Player, player_2: Player):
         self.player_1 = player_1
         self.player_2 = player_2
+        self.extra_monster_zone: list[Card | None] = [None] * 2
         self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
         self.turn_count = 1
         self.occasions: list[Action] = []
@@ -133,32 +146,12 @@ class Duel:
         self.chain: list[Effect] = []
 
     def setup(self):
-        # actions
-        # NextPhase actions
-        for from_phase in PHASE.CONSEQUENCE:
-            for to_phase in PHASE.CONSEQUENCE[from_phase]:
-                turning = from_phase == PHASE.END and to_phase == PHASE.DRAW
-                for player in [self.player_1, self.player_2]:
-                    target_player = self.another_player(player) if turning else player
-                    self.actions.append(
-                        NextPhase(
-                            _from=PhaseWithPlayer(from_phase, player),
-                            to=PhaseWithPlayer(to_phase, target_player),
-                        )
-                    )
-        # NormalSummon action
-
-        # verbose self.actions
-        for action in self.actions:
-            if isinstance(action, NextPhase):
-                logger.info(f"NextPhase from {action._from} to {action.to}")
-
         # cards
         all_decks = [
-            (self.player_1.main_deck, ZoneType.DECK, BELONGING.SELF),
-            (self.player_2.main_deck, ZoneType.DECK, BELONGING.OPPONENT),
-            (self.player_1.extra_deck, ZoneType.EXTRA_DECK, BELONGING.SELF),
-            (self.player_2.extra_deck, ZoneType.EXTRA_DECK, BELONGING.OPPONENT),
+            (self.player_1.main_deck, ZoneType.DECK, self.player_1),
+            (self.player_2.main_deck, ZoneType.DECK, self.player_2),
+            (self.player_1.extra_deck, ZoneType.EXTRA_DECK, self.player_1),
+            (self.player_2.extra_deck, ZoneType.EXTRA_DECK, self.player_2),
         ]
 
         index = 0
@@ -198,7 +191,34 @@ class Duel:
 
     def available_actions(self):
         actions = []
-        for action in self.actions:
+        # NextPhase actions
+        for to_phase in PHASE.CONSEQUENCE[self.phase.phase]:
+            turning = self.phase.phase == PHASE.END and to_phase == PHASE.DRAW
+            for player in [self.player_1, self.player_2]:
+                target_player = self.another_player(player) if turning else player
+                action = NextPhase(
+                    _from=PhaseWithPlayer(self.phase.phase, player),
+                    to=PhaseWithPlayer(to_phase, target_player),
+                )
+                if action.available(self):
+                    actions.append(action)
+        # NormalSummon action
+        for card in self.current_player().hand:
+            action = NormalSummon(card)
             if action.available(self):
                 actions.append(action)
         return actions
+
+    def get_card_by_index(self, index: int) -> Card:
+        if 0 <= index < len(self.all_cards):
+            return self.all_cards[index]
+        return None
+
+    def draw_card(self, player: Player, count: int = 1):
+        if count > len(player.main_deck):
+            self.winner = self.another_player(player)
+            return
+        for i in range(count):
+            card = player.main_deck.pop()
+            card.zone = ZoneType.HAND
+            player.hand.append(card)

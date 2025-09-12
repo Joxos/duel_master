@@ -1,4 +1,4 @@
-from .enumerations import PHASE, CARD
+from .enumerations import PHASE, CARD, CardStatus, LOCATION, EXPRESSION_WAY, FACE
 from typing import TYPE_CHECKING
 from .log import logger
 
@@ -48,6 +48,11 @@ class NextPhase(Action):
         super().perform(duel)
         duel.next_phase(self.to)
 
+    def __eq__(self, value):
+        if not isinstance(value, NextPhase):
+            return False
+        return self._from == value._from and self.to == value.to
+
     def __str__(self):
         return f"Change phase from {self._from} to {self.to}"
 
@@ -58,7 +63,7 @@ class NormalSummon(Action):
 
     def available(self, duel: "Duel"):
         phase_correct = duel.phase.phase in [PHASE.MAIN1, PHASE.MAIN2]
-        card_correct = self.card.type == CARD.MONSTER
+        card_correct = self.card.card_type == CARD.MONSTER
         level_correct = self.card.level <= 4
         if phase_correct and card_correct and level_correct:
             return True
@@ -70,8 +75,19 @@ class NormalSummon(Action):
 
     def perform(self, duel: "Duel"):
         super().perform(duel)
-        duel.player.hand.remove(self.card)
-        duel.player.field.append(self.card)
+        player = self.card.belonging
+        player.hand.remove(self.card)
+        player.allocate_main_monster_zone(self.card)
+        self.card.status = CardStatus(position=EXPRESSION_WAY.ATTACK, face=FACE.UP)
+        self.card.zone = LOCATION.SELF.MONSTER_ZONE
+
+    def __eq__(self, value):
+        if not isinstance(value, NormalSummon):
+            return False
+        return self.card == value.card
+
+    def __str__(self):
+        return f"Normal summon {self.card} to field"
 
 
 def show_action(actions: list[Action]):

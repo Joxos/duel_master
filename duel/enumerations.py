@@ -105,18 +105,9 @@ class PHASE:
 class ZoneType:
     NONE = "无"
     HAND = "手牌"
-    MONSTER_ZONE_1 = "主要怪兽区1"
-    MONSTER_ZONE_2 = "主要怪兽区2"
-    MONSTER_ZONE_3 = "主要怪兽区3"
-    MONSTER_ZONE_4 = "主要怪兽区4"
-    MONSTER_ZONE_5 = "主要怪兽区5"
-    EXTRA_MONSTER_ZONE_1 = "额外怪兽区1"
-    EXTRA_MONSTER_ZONE_2 = "额外怪兽区2"
-    SPELL_TRAP_ZONE_1 = "魔陷区1"
-    SPELL_TRAP_ZONE_2 = "魔陷区2"
-    SPELL_TRAP_ZONE_3 = "魔陷区3"
-    SPELL_TRAP_ZONE_4 = "魔陷区4"
-    SPELL_TRAP_ZONE_5 = "魔陷区5"
+    MONSTER_ZONE = "主要怪兽区"
+    EXTRA_MONSTER_ZONE = "额外怪兽区"
+    SPELL_TRAP_ZONE = "魔陷区"
     FIELD_ZONE = "场地区"
     GRAVEYARD = "墓地"
     BANISHED = "除外区"
@@ -127,7 +118,7 @@ class ZoneType:
     OVERLAY = "超量素材"
 
 
-class BELONGING:
+class LOCATION:
     NONE = "无"
     SELF = ZoneType
     OPPONENT = ZoneType

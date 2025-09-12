@@ -8,11 +8,11 @@ class MalissWhiteRabbit(Card):
         super().__init__(
             name="Maliss <P> White Rabbit",
             card_type=CARD.MONSTER,
+            effects=[],
             attribute=ATTRIBUTE.DARK,
             attack=1200,
             defense=300,
             level=3,
             monster_type=CARD.MONSTER.EFFECT,
             race=RACE.CYBERSE,
-            effects=[],
         )
