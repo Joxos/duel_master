@@ -7,8 +7,10 @@ from .enumerations import (
     UNIT,
     CHECK_TYPE,
     CardStatus,
-    POSITION,
+    EXPRESSION_WAY,
     FACE,
+    ZoneType,
+    BELONGING,
 )
 from .actions import Action, NextPhase
 from .log import logger
@@ -39,41 +41,25 @@ class Effect:
 class Card:
     name: str
     card_type: CARD
-    effects: list[Effect]
+
+    effects: list[Effect] = None
+    attribute: ATTRIBUTE = None
+    attack: int = None
+    monster_type: CARD.MONSTER = None
+    race: RACE = None
+    links: int = None
+    level: int = None
+    defense: int = None
+    psacle: int = None
+    peffects: list[Effect] = None
+
     index: int = None
+    status: CardStatus = None
+    zone: ZoneType = None
+    belonging: BELONGING = None
 
 
 @dataclass
-class MonsterCard(Card):
-    attribute: ATTRIBUTE
-    attack: int
-    monster_type: CARD.MONSTER
-    race: RACE
-
-
-@dataclass
-class LinkMonsterCard(MonsterCard):
-    links: int
-
-
-@dataclass
-class SimpleMonsterCard(MonsterCard):
-    level: int
-    defense: int
-
-
-@dataclass
-class PendulumMonsterCard(MonsterCard):
-    pscale: int
-    peffects: list[Effect]
-
-
-@dataclass
-class CardInPlay:
-    card: Card
-    status: CardStatus
-
-
 class Player:
     def __init__(
         self, main_deck: list[Card], extra_deck: list[Card], hand: list[Card] = []
@@ -81,11 +67,11 @@ class Player:
         self.main_deck = main_deck
         self.extra_deck = extra_deck
         self.hand = hand
-        self.main_monster_zone: list[CardInPlay | None] = [None] * 5
-        self.spell_trap_zone: list[CardInPlay | None] = [None] * 5
-        self.graveyard: list[CardInPlay] = []
-        self.field_zone: CardInPlay | None = None
-        self.banished: list[CardInPlay] = []
+        self.main_monster_zone: list[Card | None] = [None] * 5
+        self.spell_trap_zone: list[Card | None] = [None] * 5
+        self.graveyard: list[Card] = []
+        self.field_zone: Card | None = None
+        self.banished: list[Card] = []
 
     def __str__(self):
         return f"Player({id(self) % 1000})"
@@ -125,7 +111,7 @@ class History:
     def __str__(self):
         if not self.actions:
             return "Empty history"
-        return "\n".join(f"{i+1}. {action}" for i, action in enumerate(self.actions))
+        return "\n".join(f"{i + 1}. {action}" for i, action in enumerate(self.actions))
 
 
 class Duel:
@@ -135,7 +121,7 @@ class Duel:
         self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
         self.turn_count = 1
         self.occasions: list[Action] = []
-        self.all_cards: list[CardInPlay] = []
+        self.all_cards: list[Card] = []
         self.winner: Player | None = None
         self.actions: list[Action] = []
         self.history: History = History()
@@ -156,23 +142,35 @@ class Duel:
                             to=PhaseWithPlayer(to_phase, target_player),
                         )
                     )
+        # NormalSummon action
+
         # verbose self.actions
         for action in self.actions:
             if isinstance(action, NextPhase):
                 logger.info(f"NextPhase from {action._from} to {action.to}")
 
         # cards
-        for i, card in enumerate(
-            self.player_1.main_deck
-            + self.player_1.extra_deck
-            + self.player_2.main_deck
-            + self.player_2.extra_deck
-        ):
-            card.index = i
-            self.all_cards.append(
-                CardInPlay(
-                    card=card, status=CardStatus(position=POSITION.NONE, face=FACE.NONE)
-                )
+        all_decks = [
+            (self.player_1.main_deck, ZoneType.DECK, BELONGING.SELF),
+            (self.player_2.main_deck, ZoneType.DECK, BELONGING.OPPONENT),
+            (self.player_1.extra_deck, ZoneType.EXTRA_DECK, BELONGING.SELF),
+            (self.player_2.extra_deck, ZoneType.EXTRA_DECK, BELONGING.OPPONENT),
+        ]
+
+        index = 0
+        for deck, zone_type, belonging in all_decks:
+            for card in deck:
+                card.index = index
+                index += 1
+                card.status = CardStatus(EXPRESSION_WAY.NONE, FACE.NONE)
+                card.zone = zone_type
+                card.belonging = belonging
+                self.all_cards.append(card)
+
+        # verbose all_cards
+        for card in self.all_cards:
+            logger.info(
+                f"Card: {card.name}, {card.card_type}, {card.status}, {card.zone}, {card.belonging}"
             )
 
         random.shuffle(self.player_1.main_deck)

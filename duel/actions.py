@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from .log import logger
 
 if TYPE_CHECKING:
-    from .models import Duel, PhaseWithPlayer, CardInPlay, CardStatus, POSITION, FACE
+    from .models import Duel, PhaseWithPlayer, Card
 
 
 class Action:
@@ -55,8 +55,9 @@ class NextPhase(Action):
         duel.next_phase(self.to)
         logger.debug(duel.history)
 
+
 class NormalSummon(Action):
-    def __init__(self, card: "CardInPlay"):
+    def __init__(self, card: "Card"):
         self.card = card
 
     def available(self, duel):
@@ -70,6 +71,7 @@ class NormalSummon(Action):
         super().perform(duel)
         duel.player.hand.remove(self.card)
         duel.player.field.append(self.card)
+
 
 def show_action(actions: list[Action]):
     print("Available actions:")

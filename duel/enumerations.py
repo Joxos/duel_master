@@ -103,6 +103,7 @@ class PHASE:
 
 
 class ZoneType:
+    NONE = "无"
     HAND = "手牌"
     MONSTER_ZONE_1 = "主要怪兽区1"
     MONSTER_ZONE_2 = "主要怪兽区2"
@@ -126,12 +127,13 @@ class ZoneType:
     OVERLAY = "超量素材"
 
 
-class ZONE:
+class BELONGING:
+    NONE = "无"
     SELF = ZoneType
     OPPONENT = ZoneType
 
 
-class POSITION:
+class EXPRESSION_WAY:
     ATTACK = "攻击"
     DEFENSE = "守备"
     NONE = "无"
@@ -145,7 +147,7 @@ class FACE:
 
 @dataclass
 class CardStatus:
-    position: POSITION
+    position: EXPRESSION_WAY
     face: FACE
 
 

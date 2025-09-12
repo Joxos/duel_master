@@ -1,12 +1,13 @@
 from duel.models import Player, Duel
 from duel.actions import show_action
+from cards.card_0 import MalissWhiteRabbit
 from log import logger
 
 
 if __name__ == "__main__":
     # random card characters
     player_1 = Player(
-        main_deck=[],
+        main_deck=[MalissWhiteRabbit()],
         extra_deck=[],
     )
     player_2 = Player(

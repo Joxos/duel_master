@@ -1,6 +1,5 @@
 from duel.actions import Action
 from duel.models import Duel
-from duel.constants import SUMMON_TYPE_NORMAL, SUMMON_TYPE_SPECIAL
 
 
 class CardNameOnePerTurnEffect(Action):
