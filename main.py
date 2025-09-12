@@ -66,11 +66,9 @@ def show_field(duel: Duel):
     p1_line = f"{p1_extra} {p1_hand} {p1_main_deck}"
     lines.append(p1_line.rjust(len(lines[0])))
 
+    print(f"玩家2手牌: {', '.join([card.name for card in p2.hand])}")
     for line in lines:
         print(line)
-
-    print("\n玩家手牌:")
-    print(f"玩家2手牌: {', '.join([card.name for card in p2.hand])}")
     print(f"玩家1手牌: {', '.join([card.name for card in p1.hand])}")
 
 

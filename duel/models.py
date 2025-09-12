@@ -165,8 +165,9 @@ class Duel:
                 self.all_cards.append(card)
 
         # verbose all_cards
+        logger.debug("Verbose all_cards:")
         for card in self.all_cards:
-            logger.info(
+            logger.debug(
                 f"Card: {card.name}, {card.card_type}, {card.status}, {card.zone}, {card.belonging}"
             )
 
