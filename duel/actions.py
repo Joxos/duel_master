@@ -3,22 +3,30 @@ from typing import TYPE_CHECKING
 from .log import logger
 
 if TYPE_CHECKING:
-    from .models import Duel, PhaseWithPlayer, Card
+    from .models import Duel, PhaseWithPlayer, Card, Player, Effect
 
 
-class Action:
+class Flag:
+    def __init__(self):
+        pass
+
+
+class Condition:
     def __init__(self):
         pass
 
     def available(self, duel: "Duel") -> bool:
         return False
 
+
+class Action(Condition):
     def perform(self, duel: "Duel"):
         duel.history.append(self)
 
 
 class NextPhase(Action):
-    def __init__(self, _from: "PhaseWithPlayer", to: "PhaseWithPlayer"):
+    def __init__(self, duel: "Duel", _from: "PhaseWithPlayer", to: "PhaseWithPlayer"):
+        self.duel = duel
         self._from = _from
         self.to = to
 
@@ -88,6 +96,62 @@ class NormalSummon(Action):
 
     def __str__(self):
         return f"Normal summon {self.card} to field"
+
+
+class Skip(Flag):
+    def __init__(self, player: "Player", action: Action):
+        self.player = player
+        self.action = action
+
+    def available(self, duel: "Duel") -> bool:
+        return True
+
+    def perform(self, duel: "Duel"):
+        super().perform(duel)
+
+    def __str__(self):
+        return f"{self.player} skips {self.action}"
+
+
+class CardNameOnePerTurn(Condition):
+    def __init__(self, effect: "Effect"):
+        self.effect = effect
+
+    def available(self, duel):
+        for action in duel.history.current_turn_actions():
+            if isinstance(action, ActivateEffect) and action.effect is self.effect:
+                return False
+        return True
+
+
+class TurnChance(Flag):
+    def __init__(self, player: "Player"):
+        # It's player's turn
+        self.player = player
+
+    def __str__(self):
+        return f"It's {self.player}'s turn"
+
+    def __eq__(self, value):
+        if not isinstance(value, TurnChance):
+            return False
+        return self.player is value.player
+
+
+class ActivateEffect(Action):
+    def __init__(self, effect: "Effect"):
+        self.effect = effect
+
+    def available(self, duel: "Duel") -> bool:
+        return self.effect.available(duel)
+
+    def perform(self, duel: "Duel"):
+        self.effect.perform(duel)
+
+    def __eq__(self, value):
+        if not isinstance(value, ActivateEffect):
+            return False
+        return self.effect is value.effect
 
 
 def show_action(actions: list[Action]):

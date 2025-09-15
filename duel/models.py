@@ -12,8 +12,9 @@ from .enumerations import (
     ZoneType,
     LOCATION,
 )
-from .actions import Action, NextPhase, NormalSummon
+from .actions import Action, NextPhase, NormalSummon, TurnChance
 from .log import logger
+from .actions import Skip
 import random
 
 
@@ -123,7 +124,15 @@ class History:
                 found += 1
                 if found == times:
                     return self.actions[i + 1 :]
-        return []
+        return self.actions
+
+    def current_occasions(self):
+        return self.previous_after(Skip)
+
+    def current_turn_actions(self):
+        for i, action in enumerate(self.actions):
+            if isinstance(action, TurnChance):
+                return self.actions[i + 1 :]
 
     def __str__(self):
         if not self.actions:
@@ -138,7 +147,6 @@ class Duel:
         self.extra_monster_zone: list[Card | None] = [None] * 2
         self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
         self.turn_count = 1
-        self.occasions: list[Action] = []
         self.all_cards: list[Card] = []
         self.winner: Player | None = None
         self.actions: list[Action] = []
@@ -188,6 +196,7 @@ class Duel:
         if self.phase.phase == PHASE.DRAW:
             self.turn_count += 1
             self.phase.player = phase.player
+            self.history.append(TurnChance(self.phase.player))
         logger.info(f"Phase changed to {self.phase}. Turn count: {self.turn_count}")
 
     def available_actions(self):
@@ -198,6 +207,7 @@ class Duel:
             for player in [self.player_1, self.player_2]:
                 target_player = self.another_player(player) if turning else player
                 action = NextPhase(
+                    duel=self,
                     _from=PhaseWithPlayer(self.phase.phase, player),
                     to=PhaseWithPlayer(to_phase, target_player),
                 )
