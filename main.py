@@ -38,7 +38,7 @@ def show_field(duel: Duel):
 
     p2_grave = format_count(f"墓地:{len(p2.graveyard)}")
     p2_spell_trap = [format_card(card) for card in p2.spell_trap_zone]
-    p2_field = format_card(p2.field_zone)
+    p2_field = format_card(p2.field_zone[0])
     lines.append(f"{p2_grave} {' '.join(p2_spell_trap)} {p2_field}")
 
     p2_banish = format_count(f"除外:{len(p2.banished)}")
@@ -54,7 +54,7 @@ def show_field(duel: Duel):
     p1_line = " ".join(p1_monsters) + " " + p1_banish
     lines.append(p1_line.rjust(len(lines[2])))
 
-    p1_field = format_card(p1.field_zone)
+    p1_field = format_card(p1.field_zone[0])
     p1_spell_trap = [format_card(card) for card in p1.spell_trap_zone]
     p1_grave = format_count(f"墓地:{len(p1.graveyard)}")
     p1_line = f"{p1_field} {' '.join(p1_spell_trap)} {p1_grave}"
@@ -99,6 +99,6 @@ if __name__ == "__main__":
         except (ValueError, IndexError):
             logger.warning("Invalid action index, please try again.")
             continue
-        action.perform(duel)
+        action.perform()
     logger.info(f"Duel ended. Winner: {duel.winner}")
     logger.info(f"Total Turns: {duel.turn_count}")

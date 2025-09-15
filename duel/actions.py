@@ -11,29 +11,44 @@ class Flag:
         pass
 
 
-class Condition:
-    def __init__(self):
-        pass
+class Condition(Flag):
+    def __init__(self, duel: "Duel" = None):
+        self.duel = duel
 
-    def available(self, duel: "Duel") -> bool:
+    def available(self) -> bool:
         return False
 
 
 class Action(Condition):
-    def perform(self, duel: "Duel"):
-        duel.history.append(self)
+    def __init__(self, owner: "Player", duel: "Duel" = None):
+        super().__init__(duel=duel)
+        self.owner = owner
+
+    def available(self) -> bool:
+        return super().available()
+
+    def perform(self):
+        self.duel.history.append(self)
 
 
 class NextPhase(Action):
-    def __init__(self, duel: "Duel", _from: "PhaseWithPlayer", to: "PhaseWithPlayer"):
-        self.duel = duel
+    def __init__(
+        self,
+        owner: "Player",
+        _from: "PhaseWithPlayer",
+        to: "PhaseWithPlayer",
+        duel: "Duel" = None,
+    ):
+        super().__init__(owner=owner, duel=duel)
         self._from = _from
         self.to = to
 
-    def available(self, duel: "Duel") -> bool:
-        initial_phase_correct = duel.phase == self._from
+    def available(self) -> bool:
+        initial_phase_correct = self.duel.phase == self._from
         consequence = (
-            PHASE.CONSEQUENCE if duel.turn_count > 1 else PHASE.CONSEQUENCE_OF_TURN_1
+            PHASE.CONSEQUENCE
+            if self.duel.turn_count > 1
+            else PHASE.CONSEQUENCE_OF_TURN_1
         )
         phase_consequence_correct = (
             self._from.phase in consequence
@@ -52,9 +67,9 @@ class NextPhase(Action):
             )
             return False
 
-    def perform(self, duel):
-        super().perform(duel)
-        duel.next_phase(self.to)
+    def perform(self):
+        super().perform()
+        self.duel.next_phase(self.to)
 
     def __eq__(self, value):
         if not isinstance(value, NextPhase):
@@ -66,11 +81,12 @@ class NextPhase(Action):
 
 
 class NormalSummon(Action):
-    def __init__(self, card: "Card"):
+    def __init__(self, owner: "Player", card: "Card", duel: "Duel" = None):
+        super().__init__(owner=owner, duel=duel)
         self.card = card
 
-    def available(self, duel: "Duel"):
-        phase_correct = duel.phase.phase in [PHASE.MAIN1, PHASE.MAIN2]
+    def available(self):
+        phase_correct = self.duel.phase.phase in [PHASE.MAIN1, PHASE.MAIN2]
         card_correct = self.card.card_type == CARD.MONSTER
         level_correct = self.card.level <= 4
         if phase_correct and card_correct and level_correct:
@@ -81,8 +97,8 @@ class NormalSummon(Action):
             )
             return False
 
-    def perform(self, duel: "Duel"):
-        super().perform(duel)
+    def perform(self):
+        super().perform()
         player = self.card.belonging
         player.hand.remove(self.card)
         player.allocate_main_monster_zone(self.card)
@@ -98,28 +114,43 @@ class NormalSummon(Action):
         return f"Normal summon {self.card} to field"
 
 
-class Skip(Flag):
-    def __init__(self, player: "Player", action: Action):
-        self.player = player
-        self.action = action
+class SkipOccasion(Action):
+    def __init__(self, owner: "Player", duel: "Duel" = None):
+        super().__init__(owner=owner, duel=duel)
 
-    def available(self, duel: "Duel") -> bool:
+    def available(self) -> bool:
+        # TODO: implement this
         return True
 
-    def perform(self, duel: "Duel"):
-        super().perform(duel)
+    def perform(self):
+        super().perform()
 
     def __str__(self):
-        return f"{self.player} skips {self.action}"
-
+        return f"{self.owner} skips."
 
 class CardNameOnePerTurn(Condition):
-    def __init__(self, effect: "Effect"):
+    def __init__(self, effect: "Effect", duel: "Duel" = None):
+        super().__init__(duel=duel)
         self.effect = effect
 
-    def available(self, duel):
-        for action in duel.history.current_turn_actions():
-            if isinstance(action, ActivateEffect) and action.effect is self.effect:
+    def available(self):
+        for action in self.duel.history.current_turn_actions():
+            if isinstance(action, ActivateEffect) and action.effect == self.effect:
+                return False
+        return True
+
+
+class CardOnePerTurn(Condition):
+    def __init__(self, effect: "Effect", duel: "Duel" = None):
+        super().__init__(duel=duel)
+        self.effect = effect
+
+    def available(self):
+        for action in self.duel.history.current_turn_actions():
+            if (
+                isinstance(action, ActivateEffect)
+                and action.effect.owner == self.effect.owner
+            ):
                 return False
         return True
 
@@ -139,19 +170,23 @@ class TurnChance(Flag):
 
 
 class ActivateEffect(Action):
-    def __init__(self, effect: "Effect"):
+    def __init__(self, owner: "Player", effect: "Effect", duel: "Duel" = None):
+        super().__init__(owner=owner, duel=duel)
         self.effect = effect
 
-    def available(self, duel: "Duel") -> bool:
-        return self.effect.available(duel)
+    def available(self) -> bool:
+        return self.effect.available(self.duel)
 
-    def perform(self, duel: "Duel"):
-        self.effect.perform(duel)
+    def perform(self):
+        self.duel.chain.append(self.effect)
 
     def __eq__(self, value):
         if not isinstance(value, ActivateEffect):
             return False
         return self.effect is value.effect
+
+    def __str__(self):
+        return f"Activate {self.effect}"
 
 
 def show_action(actions: list[Action]):

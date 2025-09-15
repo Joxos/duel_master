@@ -12,9 +12,9 @@ from .enumerations import (
     ZoneType,
     LOCATION,
 )
-from .actions import Action, NextPhase, NormalSummon, TurnChance
+from .actions import Action, NextPhase, NormalSummon, TurnChance, ActivateEffect
 from .log import logger
-from .actions import Skip
+from .actions import SkipOccasion
 import random
 
 
@@ -29,13 +29,26 @@ class Times:
 class Effect:
     owner: "Card"
     index: int
-    effect: list[Action]
+    effects: list[Action]
     conditions: list[Action] = None
+    # set in game
+    duel: "Duel" = None
+
+    def available(self):
+        if self.conditions:
+            for condition in self.conditions:
+                if not condition.available():
+                    return False
+        return True
 
     def __eq__(self, value):
+        # Same effect (different cards are allowed)
         if not isinstance(value, Effect):
             return False
-        return self.owner == value.owner and self.index == value.index
+        return self.owner.name == value.owner.name and self.index == value.index
+
+    def __str__(self):
+        return f"{self.owner.name}'s {self.index} effect."
 
 
 @dataclass
@@ -58,12 +71,19 @@ class Card:
     # set in game
     status: CardStatus = None
     zone: LOCATION = None
-    # set by duel
+    duel: "Duel" = None
+    # set by duel and be used to distinguish cards with same name
     index: int = None
     belonging: "Player" = None
 
     def __str__(self):
         return f"{self.card_type} {self.name}: {self.race}/{self.attribute}, {self.level}⭐, {self.attack}/{self.defense}, {self.index}/{self.status}/{self.zone}/{self.belonging}"
+
+    def __eq__(self, value):
+        # Same card in game
+        if not isinstance(value, Card):
+            return False
+        return self.name == value.name and self.index == value.index
 
 
 class Player:
@@ -72,12 +92,17 @@ class Player:
     ):
         self.main_deck = main_deck
         self.extra_deck = extra_deck
-        self.hand = hand.copy()  # !!! If not copy, hand will be shared with other players since they are all referencing the same list as default value.
+        self.hand = (
+            hand if hand else []
+        )  # !!! python uses same default value for all instances of a class so copy empty list to avoid sharing same hands
         self.main_monster_zone: list[Card | None] = [None] * 5
         self.spell_trap_zone: list[Card | None] = [None] * 5
         self.graveyard: list[Card] = []
-        self.field_zone: Card | None = None
+        self.field_zone: list[Card | None] = [None]
         self.banished: list[Card] = []
+
+        # will be set in game
+        self.extra_monster_zone: list[Card | None] = [None] * 2
 
     def allocate_main_monster_zone(self, card: Card):
         for i in range(5):
@@ -116,8 +141,7 @@ class History:
     def append(self, action: Action):
         self.actions.append(action)
 
-    def previous_after(self, action: Action, times: int = 1) -> list[Action]:
-        # findd action from last to previous for times
+    def previous_after_action(self, action: Action, times: int = 1) -> list[Action]:
         found = 0
         for i in range(len(self.actions) - 1, -1, -1):
             if self.actions[i] == action:
@@ -126,13 +150,24 @@ class History:
                     return self.actions[i + 1 :]
         return self.actions
 
+    def previous_after_action_type(self, action_type: type, times: int = 1) -> list[Action]:
+        found = 0
+        for i in range(len(self.actions) - 1, -1, -1):
+            if isinstance(self.actions[i], action_type):
+                found += 1
+                if found == times:
+                    return self.actions[i + 1 :]
+        return self.actions
+
     def current_occasions(self):
-        return self.previous_after(Skip)
+        return self.previous_after_action_type(SkipOccasion)
 
     def current_turn_actions(self):
-        for i, action in enumerate(self.actions):
-            if isinstance(action, TurnChance):
-                return self.actions[i + 1 :]
+        return self.previous_after_action_type(TurnChance)
+
+    def last_action(self):
+        if self.actions:
+            return self.actions[-1]
 
     def __str__(self):
         if not self.actions:
@@ -153,6 +188,10 @@ class Duel:
         self.history: History = History()
         self.chain: list[Effect] = []
 
+        # injection
+        self.player_1.extra_monster_zone_1 = self.extra_monster_zone
+        self.player_2.extra_monster_zone_2 = self.extra_monster_zone
+
     def setup(self):
         # cards
         all_decks = [
@@ -170,6 +209,13 @@ class Duel:
                 card.status = CardStatus(EXPRESSION_WAY.NONE, FACE.NONE)
                 card.zone = zone_type
                 card.belonging = belonging
+                card.duel = self
+                for effect in card.effects:
+                    effect.duel = self
+                    for condition in effect.conditions:
+                        condition.duel = self
+                    for effect in effect.effects:
+                        effect.duel = self
                 self.all_cards.append(card)
 
         # verbose all_cards
@@ -201,23 +247,42 @@ class Duel:
 
     def available_actions(self):
         actions = []
+        current_player = self.current_player()
         # NextPhase actions
         for to_phase in PHASE.CONSEQUENCE[self.phase.phase]:
             turning = self.phase.phase == PHASE.END and to_phase == PHASE.DRAW
-            for player in [self.player_1, self.player_2]:
-                target_player = self.another_player(player) if turning else player
-                action = NextPhase(
-                    duel=self,
-                    _from=PhaseWithPlayer(self.phase.phase, player),
-                    to=PhaseWithPlayer(to_phase, target_player),
-                )
-                if action.available(self):
-                    actions.append(action)
+            target_player = (
+                self.another_player(current_player) if turning else current_player
+            )
+            action = NextPhase(
+                duel=self,
+                owner=current_player,
+                _from=PhaseWithPlayer(self.phase.phase, current_player),
+                to=PhaseWithPlayer(to_phase, target_player),
+            )
+            if action.available():
+                actions.append(action)
         # NormalSummon action
         for card in self.current_player().hand:
-            action = NormalSummon(card)
-            if action.available(self):
+            action = NormalSummon(duel=self, owner=current_player, card=card)
+            if action.available():
                 actions.append(action)
+        # ActivateEffect action
+        for card in (
+            current_player.hand
+            + current_player.field_zone
+            + current_player.graveyard
+            + current_player.banished
+            + current_player.main_monster_zone
+            + current_player.spell_trap_zone
+        ):
+            if isinstance(card, Card):
+                for effect in card.effects:
+                    if effect.available():
+                        actions.append(ActivateEffect(duel=self, owner=current_player, effect=effect))
+        # SkipOccasion action
+        if not isinstance(self.history.last_action(), SkipOccasion):
+            actions.append(SkipOccasion(current_player))
         return actions
 
     def get_card_by_index(self, index: int) -> Card:
