@@ -1,7 +1,7 @@
 from duel.models import Player, Duel
 from duel.actions import show_action
 from duel.enumerations import FACE
-from cards.card_0 import MalissWhiteRabbit
+from cards.MalissWhiteRabbit import MalissWhiteRabbit
 from log import logger
 
 
