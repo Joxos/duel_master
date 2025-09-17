@@ -150,7 +150,9 @@ class History:
                     return self.actions[i + 1 :]
         return self.actions
 
-    def previous_after_action_type(self, action_type: type, times: int = 1) -> list[Action]:
+    def previous_after_action_type(
+        self, action_type: type, times: int = 1
+    ) -> list[Action]:
         found = 0
         for i in range(len(self.actions) - 1, -1, -1):
             if isinstance(self.actions[i], action_type):
@@ -267,6 +269,7 @@ class Duel:
             action = NormalSummon(duel=self, owner=current_player, card=card)
             if action.available():
                 actions.append(action)
+        activations = []
         # ActivateEffect action
         for card in (
             current_player.hand
@@ -279,11 +282,16 @@ class Duel:
             if isinstance(card, Card):
                 for effect in card.effects:
                     if effect.available():
-                        actions.append(ActivateEffect(duel=self, owner=current_player, effect=effect))
+                        activations.append(
+                            ActivateEffect(
+                                duel=self, owner=current_player, effect=effect
+                            )
+                        )
+
         # SkipOccasion action
-        if not isinstance(self.history.last_action(), SkipOccasion):
-            actions.append(SkipOccasion(current_player))
-        return actions
+        if not isinstance(self.history.last_action(), SkipOccasion) and activations:
+            activations.append(SkipOccasion(duel=self, owner=current_player))
+        return activations if activations else actions
 
     def get_card_by_index(self, index: int) -> Card:
         if 0 <= index < len(self.all_cards):

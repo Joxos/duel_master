@@ -128,6 +128,7 @@ class SkipOccasion(Action):
     def __str__(self):
         return f"{self.owner} skips."
 
+
 class CardNameOnePerTurn(Condition):
     def __init__(self, effect: "Effect", duel: "Duel" = None):
         super().__init__(duel=duel)
@@ -187,6 +188,18 @@ class ActivateEffect(Action):
 
     def __str__(self):
         return f"Activate {self.effect}"
+
+
+class CardNormalSummonOccasion(Condition):
+    def __init__(self, card: "Card", duel: "Duel" = None):
+        super().__init__(duel=duel)
+        self.card = card
+
+    def available(self):
+        for action in self.duel.history.current_occasions():
+            if isinstance(action, NormalSummon) and action.card == self.card:
+                return True
+        return False
 
 
 def show_action(actions: list[Action]):

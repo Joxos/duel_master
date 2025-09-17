@@ -1,7 +1,7 @@
 # Maliss <P> White Rabbit
 from duel.models import Card, Effect
 from duel.enumerations import CARD, ATTRIBUTE, RACE
-from duel.actions import CardNameOnePerTurn
+from duel.actions import CardNameOnePerTurn, CardNormalSummonOccasion
 
 
 class MalissWhiteRabbit(Card):
@@ -19,4 +19,5 @@ class MalissWhiteRabbit(Card):
         )
         effect = Effect(owner=self, index=1, effects=[], conditions=[])
         effect.conditions.append(CardNameOnePerTurn(effect=effect))
+        effect.conditions.append(CardNormalSummonOccasion(card=self))
         self.effects.append(effect)
