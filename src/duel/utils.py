@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from cards.enumerations import FACE
+from cards.enum import FACE
 
 if TYPE_CHECKING:
     from duel.models import Duel

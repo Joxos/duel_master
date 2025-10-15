@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Type
 
-from cards.enumerations import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, RACE
+from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, RACE
 
 if TYPE_CHECKING:
-    from cards.effects.models import Effect
-    from field.enumerations import ZoneType
+    from effects.models import Effect
+    from field.enum import ZoneType
     from player.models import Player
 
 
@@ -29,7 +29,7 @@ class CardStatus:
 @dataclass
 class Card:
     name: str
-    card_type: CARD
+    card_type: Type[CARD.MONSTER] | Type[CARD.SPELL] | Type[CARD.TRAP]
 
     # optional
     effects: Optional[List["Effect"]] = None

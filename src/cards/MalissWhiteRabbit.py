@@ -1,5 +1,6 @@
-from cards.enumerations import ATTRIBUTE, CARD, RACE
+from cards.enum import ATTRIBUTE, CARD, RACE
 from cards.models import Card
+from effects.models import Effect
 
 
 class MalissWhiteRabbit(Card):
@@ -7,7 +8,7 @@ class MalissWhiteRabbit(Card):
         super().__init__(
             name="Maliss <P> White Rabbit",
             card_type=CARD.MONSTER,
-            effects=[],
+            effects=[Effect(owner=self, index=1, actions=[])],
             attribute=ATTRIBUTE.DARK,
             attack=1200,
             defense=300,

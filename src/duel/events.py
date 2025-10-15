@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 
 from moduvent import Event
 
-from duel.enumerations import END_REASON
 
 if TYPE_CHECKING:
+    from duel.enum import END_REASON
     from duel.models import Duel
     from player.models import Player
 
@@ -29,5 +29,5 @@ class InitialDraw(DuelState): ...
 
 @dataclass
 class DuelEnd(DuelState):
-    reason: END_REASON
+    reason: "END_REASON"
     winner: "Player"

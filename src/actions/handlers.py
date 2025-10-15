@@ -1,4 +1,4 @@
-from cards.effects.actions.events import SetPhase
+from actions.events import SetPhase
 from moduvent import subscribe
 from duel.utils import show_duel_info
 

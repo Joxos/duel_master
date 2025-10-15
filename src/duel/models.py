@@ -1,12 +1,11 @@
 from typing import TYPE_CHECKING, Optional
 
-from phase.enumerations import PHASE
+from phase.enum import PHASE
 from phase.models import PhaseWithPlayer
 
 if TYPE_CHECKING:
     from cards.models import Card
     from player.models import Player
-
 
 class Duel:
     def __init__(self, player_1: "Player", player_2: "Player"):
@@ -22,6 +21,7 @@ class Duel:
 
         self.phase = PhaseWithPlayer(PHASE.STANDBY, player_1)
         self.turn_count = 0
+        self.history = []
 
     def current_player(self) -> "Player":
         return self.player_2 if self.turn_count % 2 == 0 else self.player_1

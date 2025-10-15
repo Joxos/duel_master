@@ -3,12 +3,12 @@ from sys import exit
 
 from moduvent import emit, subscribe
 
-from cards.effects.actions.events import DrawCard, SetPhase, ShuffleDeck
-from duel.enumerations import END_REASON
+from actions.events import DrawCard, SetPhase, ShuffleDeck
+from duel.enum import END_REASON
 from duel.events import DuelEnd, DuelInit, DuelStart, InitialDraw
 from duel.models import Duel
 from duel.utils import show_duel_info
-from phase.enumerations import PHASE
+from phase.enum import PHASE
 from phase.models import PhaseWithPlayer
 
 

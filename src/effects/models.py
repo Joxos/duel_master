@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, List, Optional
 
 
 if TYPE_CHECKING:
-    from cards.effects.actions.models import Action
-    from cards.effects.enumerations import CHECK_TYPE, UNIT
+    from actions.models import Action
+    from effects.enum import CHECK_TYPE, UNIT
     from cards.models import Card
 
 
@@ -19,8 +19,9 @@ class Times:
 class Effect:
     owner: "Card"
     index: int
-    effects: List["Action"]
+    actions: List["Action"]
     conditions: Optional[List["Action"]] = None
+    costs: Optional[List["Action"]] = None
 
     def available(self):
         if self.conditions:

@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from phase.enumerations import PHASE
+    from phase.enum import PHASE
     from player.models import Player
 
 
