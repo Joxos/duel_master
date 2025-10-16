@@ -3,7 +3,7 @@ from sys import exit
 
 from moduvent import emit, subscribe
 
-from actions.events import DrawCard, ShuffleDeck
+from actions.events import DrawCard, ShuffleDeck, Skip
 from cards.enum import EXPRESSION_WAY, FACE
 from cards.models import CardStatus
 from duel.events import (
@@ -12,12 +12,14 @@ from duel.events import (
     DuelStart,
     GetAndExecuteUserDecision,
     GetAvailableActions,
+    GetAvailableActivations,
     InitialDraw,
     SetupCards,
 )
 from duel.models import Duel
 from field.enum import ZoneType
-from utils import show_duel_info
+from phase.events import TurnChance
+from utils import cleanup_emit, show_duel_info
 
 
 @subscribe(DuelInit)
@@ -32,10 +34,12 @@ def setup_duel(event: DuelStart):
     emit(SetupCards(duel=duel))
     emit(ShuffleDeck(duel=duel))
     emit(InitialDraw(duel=duel))
+    # we add this by hand to handle the special case of the first turn
+    duel.history.append(TurnChance(duel=duel, next_player=duel.player_1))
     show_duel_info(duel=duel)
     while True:
-        emit(GetAndExecuteUserDecision(duel=duel, player=duel.player_1))
-        emit(GetAndExecuteUserDecision(duel=duel, player=duel.player_2))
+        emit(GetAndExecuteUserDecision(duel=duel, player=duel.current_player))
+        emit(GetAndExecuteUserDecision(duel=duel, player=duel.opponent_player))
 
 
 @subscribe(SetupCards)
@@ -80,14 +84,15 @@ def show_result(event: DuelEnd):
 
 @subscribe(GetAndExecuteUserDecision)
 def get_user_decision(event: GetAndExecuteUserDecision):
-    actions = emit(GetAvailableActions(duel=event.duel, player=event.player))
-    # fix actions
-    result = []
-    for action in actions:
-        if isinstance(action, list):
-            result.extend(action)
-    actions = result
-    if not actions:
+    actions = cleanup_emit(
+        emit(GetAvailableActions(duel=event.duel, player=event.player))
+    )
+    if activations := cleanup_emit(
+        emit(GetAvailableActivations(duel=event.duel, player=event.player))
+    ):
+        activations.append(Skip(duel=event.duel, player=event.player))
+    if not (actions or activations):
+        emit(Skip(duel=event.duel, player=event.player))
         return
 
     print(f"{event.player.name}:")
@@ -99,3 +104,4 @@ def get_user_decision(event: GetAndExecuteUserDecision):
     choice = actions[int(choice) - 1]
     event.duel.history.append(choice)
     emit(choice)
+    show_duel_info(event.duel)

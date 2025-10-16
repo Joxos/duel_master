@@ -1,20 +1,19 @@
 from moduvent import emit, subscribe
 
-from actions.events import DrawCard, NormalSummon, SetPhase
-from cards.enum import EXPRESSION_WAY, FACE
+from actions.events import DrawCard, NormalSummon, PostPhase, SetPhase
+from cards.enum import CARD, EXPRESSION_WAY, FACE
 from cards.models import CardStatus
 from duel.enum import END_REASON
 from duel.events import DuelEnd, GetAvailableActions
 from phase.enum import CONSEQUENCE, CONSEQUENCE_OF_TURN_1, PHASE
 from phase.models import PhaseWithPlayer
-from utils import show_duel_info
 
 
 @subscribe(SetPhase)
 def set_phase(event: SetPhase):
     duel, phase = event.duel, event.phase
+    emit(PostPhase(duel=duel, phase=phase))
     duel.phase = phase
-    show_duel_info(duel)
 
 
 @subscribe(GetAvailableActions)
@@ -22,35 +21,35 @@ def normal_summon_available(event: GetAvailableActions):
     duel, player = event.duel, event.player
     player_correct = duel.current_player == player
     phase_correct = duel.current_phase in [PHASE.MAIN1, PHASE.MAIN2]
-    if player_correct and phase_correct:
-        for action in duel.history.current_turn():
-            if isinstance(action, NormalSummon):
-                return []
-        available_hands = [
-            card for card in player.field.hands if card.level and card.level <= 4
-        ]
+    has_zone = not all(player.field.main_monster_zones)
+    first_time = not any(
+        isinstance(action, NormalSummon)
+        for action in duel.history.current_turn_actions()
+    )
+    if player_correct and phase_correct and has_zone and first_time:
         return [
             NormalSummon(duel=duel, player=player, card=card)
-            for card in available_hands
+            for card in player.field.hands
+            if card.card_type in [CARD.MONSTER.NORMAL, CARD.MONSTER.EFFECT]
+            and card.level
+            and card.level <= 4
         ]
     return []
-
-
-# @subscribe(GetAvailableActions)
-# def skip(event: GetAvailableActions):
-#     return [Skip(duel=event.duel)]
 
 
 @subscribe(NormalSummon)
 def normal_summon(event: NormalSummon):
     duel, player, card = event.duel, event.player, event.card
     zone_index = ""
-    while not (zone_index.isdigit() and 0 < int(zone_index) <= 5):
+    while not (
+        zone_index.isdigit()
+        and 0 < int(zone_index) <= 5
+        and player.field.main_monster_zones[int(zone_index) - 1] is None
+    ):
         zone_index = input("(zone_index) >>> ")
     card.status = CardStatus(position=EXPRESSION_WAY.ATTACK, face=FACE.UP)
     player.field.main_monster_zones[int(zone_index) - 1] = card
     player.field.hands.remove(card)
-    show_duel_info(duel)
 
 
 @subscribe(GetAvailableActions)

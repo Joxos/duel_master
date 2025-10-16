@@ -40,6 +40,11 @@ class GetAvailableActions(DuelState):
 
 
 @dataclass
+class GetAvailableActivations(DuelState):
+    player: "Player"
+
+
+@dataclass
 class DuelEnd(DuelState):
     reason: "END_REASON"
     winner: "Player"

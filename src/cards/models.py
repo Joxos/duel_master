@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Type
+from typing import TYPE_CHECKING, List, Optional
 
 from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, RACE
 
@@ -29,7 +29,7 @@ class CardStatus:
 @dataclass
 class Card:
     name: str
-    card_type: Type[CARD.MONSTER] | Type[CARD.SPELL] | Type[CARD.TRAP]
+    card_type: CARD.MONSTER | CARD.SPELL | CARD.TRAP
 
     # optional
     effects: Optional[List["Effect"]] = None

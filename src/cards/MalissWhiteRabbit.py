@@ -7,7 +7,7 @@ class MalissWhiteRabbit(Card):
     def __init__(self):
         super().__init__(
             name="Maliss <P> White Rabbit",
-            card_type=CARD.MONSTER,
+            card_type=CARD.MONSTER.EFFECT,
             effects=[Effect(owner=self, index=1, actions=[])],
             attribute=ATTRIBUTE.DARK,
             attack=1200,

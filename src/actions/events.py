@@ -14,6 +14,9 @@ class SetPhase(DuelState):
     phase: "PhaseWithPlayer"
 
 
+class PostPhase(SetPhase): ...
+
+
 class ShuffleDeck(DuelState): ...
 
 
@@ -29,4 +32,6 @@ class NormalSummon(DuelState):
     card: "Card"
 
 
-class Skip(DuelState): ...
+@dataclass
+class Skip(DuelState):
+    player: "Player"

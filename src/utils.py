@@ -1,9 +1,17 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from cards.enum import FACE
 
 if TYPE_CHECKING:
     from duel.models import Duel
+
+
+def cleanup_emit(result: List):
+    cleaned = []
+    for r in result:
+        if isinstance(r, list):
+            cleaned.extend(r)
+    return cleaned
 
 
 def show_duel_info(duel: "Duel"):
