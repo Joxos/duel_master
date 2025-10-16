@@ -9,4 +9,4 @@ if TYPE_CHECKING:
 
 @dataclass
 class TurnChance(DuelState):
-    player: "Player"
+    next_player: "Player"

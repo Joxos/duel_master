@@ -26,7 +26,7 @@ def show_duel_info(duel: "Duel"):
             return format_zone("里侧")
         return format_zone(card.name)
 
-    turn_info = f"回合: {duel.turn_count} 阶段: {duel.phase.phase} 当前玩家: {duel.phase.player.name}"
+    turn_info = f"回合: {duel.turn_count} 阶段: {duel.current_phase} 当前玩家: {duel.current_player.name}"
     print(turn_info.center(100))
     print("=" * 100)
 

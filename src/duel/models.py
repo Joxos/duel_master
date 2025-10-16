@@ -39,5 +39,17 @@ class Duel:
         self.history = History()
         self.all_cards = []
 
-    def opponent_player(self, player: "Player") -> "Player":
+    @property
+    def current_player(self) -> "Player":
+        return self.phase.player
+
+    @property
+    def current_phase(self) -> "PHASE":
+        return self.phase.phase
+
+    @property
+    def opponent_player(self) -> "Player":
+        return self.other_player(self.current_player)
+
+    def other_player(self, player: "Player") -> "Player":
         return self.player_1 if player == self.player_2 else self.player_2
