@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-
 if TYPE_CHECKING:
     from actions.models import Action
-    from effects.enum import CHECK_TYPE, UNIT
     from cards.models import Card
+    from effects.enum import CHECK_TYPE, UNIT
 
 
 @dataclass
@@ -26,7 +25,7 @@ class Effect:
     def available(self):
         if self.conditions:
             for condition in self.conditions:
-                if not all(condition, condition.available()):
+                if not (condition and condition.available()):
                     return False
         return True
 

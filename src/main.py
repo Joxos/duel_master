@@ -1,4 +1,4 @@
-from moduvent import emit, subscribe
+from moduvent import discover_modules, emit, subscribe
 from ventrun import Main
 
 from cards.MalissWhiteRabbit import MalissWhiteRabbit
@@ -15,3 +15,8 @@ def main(e):
         name="Bob", main_deck=[MalissWhiteRabbit() for _ in range(5)], extra_deck=[]
     )
     emit(DuelInit(player_1=player_1, player_2=player_2))
+
+
+if __name__ == "__main__":
+    discover_modules(".")
+    emit(Main())

@@ -1,11 +1,26 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
+from actions.models import Action
 from phase.enum import PHASE
+from phase.events import TurnChance
 from phase.models import PhaseWithPlayer
 
 if TYPE_CHECKING:
     from cards.models import Card
     from player.models import Player
+
+
+class History(list[Action]):
+    def current_turn(self) -> List[Action]:
+        return next(
+            (
+                self[i + 1 :]
+                for i in range(len(self) - 1, -1, -1)
+                if isinstance(self[i], TurnChance)
+            ),
+            [],
+        )
+
 
 class Duel:
     def __init__(self, player_1: "Player", player_2: "Player"):
@@ -19,15 +34,10 @@ class Duel:
             self.extra_monster_zone_2,
         ]
 
-        self.phase = PhaseWithPlayer(PHASE.STANDBY, player_1)
-        self.turn_count = 0
-        self.history = []
-
-    def current_player(self) -> "Player":
-        return self.player_2 if self.turn_count % 2 == 0 else self.player_1
-
-    def another_player(self) -> "Player":
-        return self.player_1 if self.turn_count % 2 == 0 else self.player_2
+        self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
+        self.turn_count = 1
+        self.history = History()
+        self.all_cards = []
 
     def opponent_player(self, player: "Player") -> "Player":
         return self.player_1 if player == self.player_2 else self.player_2

@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 from moduvent import Event
 
-
 if TYPE_CHECKING:
     from duel.enum import END_REASON
     from duel.models import Duel
@@ -25,6 +24,19 @@ class DuelStart(DuelState): ...
 
 
 class InitialDraw(DuelState): ...
+
+
+class SetupCards(DuelState): ...
+
+
+@dataclass
+class GetAndExecuteUserDecision(DuelState):
+    player: "Player"
+
+
+@dataclass
+class GetAvailableActions(DuelState):
+    player: "Player"
 
 
 @dataclass

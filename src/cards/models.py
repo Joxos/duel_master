@@ -33,18 +33,18 @@ class Card:
 
     # optional
     effects: Optional[List["Effect"]] = None
-    attribute: Optional[ATTRIBUTE] = None
+    attribute: Optional["ATTRIBUTE"] = None
     attack: Optional[int] = None
     defense: Optional[int] = None
     level: Optional[int] = None
-    monster_type: Optional[CARD.MONSTER] = None
-    race: Optional[RACE] = None
+    monster_type: Optional["CARD.MONSTER"] = None
+    race: Optional["RACE"] = None
     links: Optional[int] = None
     psacle: Optional[int] = None
     peffects: Optional[List["Effect"]] = None
 
     # set in game
-    status: Optional[CardStatus] = None
+    status: Optional["CardStatus"] = None
     zone: Optional["ZoneType"] = None
     # set by duel and be used to distinguish cards with same name
     index: Optional[int] = None

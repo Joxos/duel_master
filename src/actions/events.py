@@ -1,14 +1,17 @@
 from dataclasses import dataclass
-
+from typing import TYPE_CHECKING
 
 from duel.events import DuelState
-from phase.models import PhaseWithPlayer
-from player.models import Player
+
+if TYPE_CHECKING:
+    from cards.models import Card
+    from phase.models import PhaseWithPlayer
+    from player.models import Player
 
 
 @dataclass
 class SetPhase(DuelState):
-    phase: PhaseWithPlayer
+    phase: "PhaseWithPlayer"
 
 
 class ShuffleDeck(DuelState): ...
@@ -17,4 +20,13 @@ class ShuffleDeck(DuelState): ...
 @dataclass
 class DrawCard(DuelState):
     player: "Player"
-    num: "int"
+    num: int
+
+
+@dataclass
+class NormalSummon(DuelState):
+    player: "Player"
+    card: "Card"
+
+
+class Skip(DuelState): ...

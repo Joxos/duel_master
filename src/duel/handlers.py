@@ -3,13 +3,21 @@ from sys import exit
 
 from moduvent import emit, subscribe
 
-from actions.events import DrawCard, SetPhase, ShuffleDeck
-from duel.enum import END_REASON
-from duel.events import DuelEnd, DuelInit, DuelStart, InitialDraw
+from actions.events import DrawCard, ShuffleDeck
+from cards.enum import EXPRESSION_WAY, FACE
+from cards.models import CardStatus
+from duel.events import (
+    DuelEnd,
+    DuelInit,
+    DuelStart,
+    GetAndExecuteUserDecision,
+    GetAvailableActions,
+    InitialDraw,
+    SetupCards,
+)
 from duel.models import Duel
-from duel.utils import show_duel_info
-from phase.enum import PHASE
-from phase.models import PhaseWithPlayer
+from field.enum import ZoneType
+from utils import show_duel_info
 
 
 @subscribe(DuelInit)
@@ -20,9 +28,35 @@ def init_duel(event: DuelInit):
 
 @subscribe(DuelStart)
 def setup_duel(event: DuelStart):
-    emit(ShuffleDeck(duel=event.duel))
-    emit(InitialDraw(duel=event.duel))
-    emit(SetPhase(duel=event.duel, phase=PhaseWithPlayer(phase=PHASE.STANDBY, player=event.duel.player_1)))
+    duel = event.duel
+    emit(SetupCards(duel=duel))
+    emit(ShuffleDeck(duel=duel))
+    emit(InitialDraw(duel=duel))
+    show_duel_info(duel=duel)
+    while True:
+        emit(GetAndExecuteUserDecision(duel=duel, player=duel.player_1))
+        emit(GetAndExecuteUserDecision(duel=duel, player=duel.player_2))
+
+
+@subscribe(SetupCards)
+def setup_cards(event: SetupCards):
+    duel, player_1, player_2 = event.duel, event.duel.player_1, event.duel.player_2
+    all_decks = [
+        (player_1.field.main_deck, ZoneType.MAIN_DECK, player_1),
+        (player_2.field.main_deck, ZoneType.MAIN_DECK, player_2),
+        (player_1.field.extra_deck, ZoneType.EXTRA_DECK, player_1),
+        (player_2.field.extra_deck, ZoneType.EXTRA_DECK, player_2),
+    ]
+
+    index = 0
+    for deck, zone_type, belonging in all_decks:
+        for card in deck:
+            card.index = index
+            index += 1
+            card.status = CardStatus(EXPRESSION_WAY.NONE, FACE.NONE)
+            card.zone = zone_type
+            card.belonging = belonging
+            duel.all_cards.append(card)
 
 
 @subscribe(ShuffleDeck)
@@ -37,25 +71,31 @@ def initial_draw(event: InitialDraw):
     emit(DrawCard(duel=event.duel, player=event.duel.player_2, num=5))
 
 
-@subscribe(DrawCard)
-def draw_card(event: DrawCard):
-    player, num, duel = event.player, event.num, event.duel
-    for _ in range(num):
-        if player.field.main_deck:
-            card = player.field.main_deck.pop()
-            player.field.hands.append(card)
-        else:
-            emit(
-                DuelEnd(
-                    duel=event.duel,
-                    reason=END_REASON.DECK_OUT,
-                    winner=duel.opponent_player(player),
-                )
-            )
-
-
 @subscribe(DuelEnd)
 def show_result(event: DuelEnd):
     show_duel_info(event.duel)
     print(f"{event.winner.name} wins the duel with {event.reason.value}!")
     exit(0)
+
+
+@subscribe(GetAndExecuteUserDecision)
+def get_user_decision(event: GetAndExecuteUserDecision):
+    actions = emit(GetAvailableActions(duel=event.duel, player=event.player))
+    # fix actions
+    result = []
+    for action in actions:
+        if isinstance(action, list):
+            result.extend(action)
+    actions = result
+    if not actions:
+        return
+
+    print(f"{event.player.name}:")
+    for i in range(len(actions)):
+        print(f"{i + 1}. {actions[i]}")
+    choice = ""
+    while not (choice.isdigit() and 1 <= int(choice) <= len(actions)):
+        choice = input("(choice) >>> ")
+    choice = actions[int(choice) - 1]
+    event.duel.history.append(choice)
+    emit(choice)

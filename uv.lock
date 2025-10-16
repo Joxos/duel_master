@@ -43,27 +43,27 @@ wheels = [
 
 [[package]]
 name = "moduvent"
-version = "5.3"
+version = "5.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "loguru" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e5/02/87ee08c9120aadcf69624f474ff4b3f5b58b7187a45cfe3ba8a33393b6b2/moduvent-5.3.tar.gz", hash = "sha256:a31e6de0a8784d4ca832ad4bdf13cde4c65df037067ff1e3ea9eb1f04f3585b9", size = 21965, upload-time = "2025-10-14T10:47:49.041Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c2/d3/020cc588ef5ccf79f92e1f9dbd255968356c417785fff2c565cd9179a4e8/moduvent-5.5.tar.gz", hash = "sha256:1df073447a0ecc933c613a1f3c6c673df1a83285d0180b8e816fa6963da51acf", size = 21951, upload-time = "2025-10-15T07:59:10.966Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ea/8a/a3275ea29f1124ab0a2f93f467edd511280fbb913b5c8e7509da20a0d9f1/moduvent-5.3-py3-none-any.whl", hash = "sha256:255cf87c79f5e2319369ab77494395fc29a7b729184862fc4da796c2bc67b5f7", size = 17051, upload-time = "2025-10-14T10:47:47.722Z" },
+    { url = "https://files.pythonhosted.org/packages/9a/1c/927457c60bba833da56aa220a9f0e05b0c8022eb4c35df319941dae262ba/moduvent-5.5-py3-none-any.whl", hash = "sha256:799daeda7b1c5aeac1fd405fcaa7e6b40de56574e77a39b29a85a6a6ddf965c4", size = 17049, upload-time = "2025-10-15T07:59:09.767Z" },
 ]
 
 [[package]]
 name = "ventrun"
-version = "1.2"
+version = "1.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "loguru" },
     { name = "moduvent" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d1/8e/891bdc4e4696e3cee1aa658cd8ca8258a792df107ba8450f7cfee5bb01f8/ventrun-1.2.tar.gz", hash = "sha256:17ab1c20042ff123a19f9dfb174b2076acffe4c4295d8a4078e7d3d94e6dd1ac", size = 3367, upload-time = "2025-10-14T10:49:46.275Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/f8/dc4dabe5135cd5ddaf974d81c80bc495520bd43f96269c7da4fc13c3612b/ventrun-1.5.tar.gz", hash = "sha256:4d383eac9064483e222bc1a2b4ec537703ce6f30e5b7b77c561eb0681bf9f754", size = 3011, upload-time = "2025-10-15T07:59:43.262Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/73/90/2d2f96f254d478319334359d9eedf501787b9feba11640a10722d92c8e50/ventrun-1.2-py3-none-any.whl", hash = "sha256:5cb8a545d2f699b0a6d9c724928a4670ef32ef644dcc02da05f440f0de8f093e", size = 3839, upload-time = "2025-10-14T10:49:45.19Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/21/e3928094f123f0dc447626aae10d49f69cebba53ffc524cd1255f37040e4/ventrun-1.5-py3-none-any.whl", hash = "sha256:2a4d7e5923dbbc2a294a33623f828db3967b453cf5bf3e10a4ee15034e3ca023", size = 3832, upload-time = "2025-10-15T07:59:42.235Z" },
 ]
 
 [[package]]
