@@ -1,18 +1,11 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, Optional
 
-from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, RACE
+from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, NAME_FIELD, RACE
+from field.models import Location
 
 if TYPE_CHECKING:
-    from effects.models import Effect
-    from field.enum import ZoneType
     from player.models import Player
-
-
-@dataclass
-class Location:
-    player: "Player"
-    zone: "ZoneType"
 
 
 @dataclass
@@ -32,8 +25,8 @@ class Card:
     card_type: CARD.MONSTER | CARD.SPELL | CARD.TRAP
 
     # optional
-    effects: Optional[List["Effect"]] = None
     attribute: Optional["ATTRIBUTE"] = None
+    effects: Optional[Dict[int, Callable]] = None  # effect_index: effect_func
     attack: Optional[int] = None
     defense: Optional[int] = None
     level: Optional[int] = None
@@ -41,11 +34,11 @@ class Card:
     race: Optional["RACE"] = None
     links: Optional[int] = None
     psacle: Optional[int] = None
-    peffects: Optional[List["Effect"]] = None
+    name_field: Optional[NAME_FIELD] = None
 
     # set in game
     status: Optional["CardStatus"] = None
-    zone: Optional["ZoneType"] = None
+    zone: Optional["Location"] = None
     # set by duel and be used to distinguish cards with same name
     index: Optional[int] = None
     belonging: Optional["Player"] = None
@@ -54,7 +47,4 @@ class Card:
         return f"{self.card_type} {self.name}: {self.race}/{self.attribute}, {self.level}⭐, {self.attack}/{self.defense}, {self.index}/{self.status}/{self.zone}/{self.belonging}"
 
     def __eq__(self, value):
-        # Same card in game
-        if not isinstance(value, Card):
-            return False
-        return self.name == value.name and self.index == value.index
+        return self is value

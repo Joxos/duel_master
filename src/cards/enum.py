@@ -109,3 +109,7 @@ class LINK_MARKER(Enum):
     BOTTOM_LEFT = "左下"
     BOTTOM = "下"
     BOTTOM_RIGHT = "右下"
+
+
+class NAME_FIELD(Enum):
+    MALISS = "码丽丝"

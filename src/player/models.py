@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Sequence, MutableSequence
 
 from field.models import Field
 
 if TYPE_CHECKING:
+    from utils import C
     from cards.models import Card
 
 
@@ -18,3 +19,6 @@ class Player:
         if hand is None:
             hand = []
         self.field = Field(main_deck=main_deck, extra_deck=extra_deck, hands=hand)
+
+    def __eq__(self, value: object) -> bool:
+        return self is value

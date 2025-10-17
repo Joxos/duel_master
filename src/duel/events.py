@@ -16,35 +16,35 @@ class DuelInit(Event):
 
 
 @dataclass
-class DuelState(Event):
+class DuelStateEvent(Event):
     duel: "Duel"
 
 
-class DuelStart(DuelState): ...
+class DuelStart(DuelStateEvent): ...
 
 
-class InitialDraw(DuelState): ...
+class InitialDraw(DuelStateEvent): ...
 
 
-class SetupCards(DuelState): ...
+class SetupCards(DuelStateEvent): ...
 
 
 @dataclass
-class GetAndExecuteUserDecision(DuelState):
+class GetAndExecuteUserDecision(DuelStateEvent):
     player: "Player"
 
 
 @dataclass
-class GetAvailableActions(DuelState):
+class GetAvailableActions(DuelStateEvent):
     player: "Player"
 
 
 @dataclass
-class GetAvailableActivations(DuelState):
+class GetAvailableActivations(DuelStateEvent):
     player: "Player"
 
 
 @dataclass
-class DuelEnd(DuelState):
+class DuelEnd(DuelStateEvent):
     reason: "END_REASON"
     winner: "Player"

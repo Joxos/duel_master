@@ -1,7 +1,8 @@
 from random import shuffle
 from sys import exit
+from typing import cast, MutableSequence
 
-from moduvent import emit, subscribe
+from moduvent import emit, subscribe, register
 
 from actions.events import DrawCard, ShuffleDeck, Skip
 from cards.enum import EXPRESSION_WAY, FACE
@@ -18,6 +19,7 @@ from duel.events import (
 )
 from duel.models import Duel
 from field.enum import ZoneType
+from field.models import Location
 from phase.events import TurnChance
 from utils import cleanup_emit, show_duel_info
 
@@ -58,15 +60,18 @@ def setup_cards(event: SetupCards):
             card.index = index
             index += 1
             card.status = CardStatus(EXPRESSION_WAY.NONE, FACE.NONE)
-            card.zone = zone_type
+            card.zone = Location(player=belonging, zone=zone_type)
             card.belonging = belonging
+            if card.effects:
+                for effect in card.effects.values():
+                    register(effect, GetAvailableActivations)
             duel.all_cards.append(card)
 
 
 @subscribe(ShuffleDeck)
 def shuffle_deck(event: ShuffleDeck):
-    shuffle(event.duel.player_1.field.main_deck)
-    shuffle(event.duel.player_2.field.main_deck)
+    shuffle(cast(MutableSequence, event.duel.player_1.field.main_deck))
+    shuffle(cast(MutableSequence, event.duel.player_2.field.main_deck))
 
 
 @subscribe(InitialDraw)

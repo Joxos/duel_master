@@ -1,9 +1,15 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, TypeVar
 
 from cards.enum import FACE
 
 if TYPE_CHECKING:
+    from cards.models import Card
     from duel.models import Duel
+    from field.enum import ZoneType
+    from field.models import Field
+
+
+C = TypeVar("C", bound="Card")
 
 
 def cleanup_emit(result: List):
@@ -12,6 +18,19 @@ def cleanup_emit(result: List):
         if isinstance(r, list):
             cleaned.extend(r)
     return cleaned
+
+
+def select_main_field(banner: str, field: Field, zone_type: ZoneType):
+    if zone_type not in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
+        raise ValueError("Invalid zone_type")
+    zone_index = ""
+    while not (
+        zone_index.isdigit()
+        and 0 < int(zone_index) <= 5
+        and field.convert[zone_type][int(zone_index) - 1] is None
+    ):
+        zone_index = input(f"({banner} - {zone_type.value}) >>> ")
+    return int(zone_index) - 1
 
 
 def show_duel_info(duel: "Duel"):

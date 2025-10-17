@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, List, Optional
 
 from actions.events import Skip
-from actions.models import Action
 from phase.enum import PHASE
 from phase.events import TurnChance
 from phase.models import PhaseWithPlayer
@@ -22,10 +21,10 @@ class History(list):
             [],
         )
 
-    def current_turn_actions(self) -> List[Action]:
+    def current_turn_actions(self) -> List:
         return self.slice_back_until(TurnChance)
 
-    def current_occasions(self) -> List[Action]:
+    def current_occasions(self) -> List:
         return self.slice_back_until(Skip)
 
 

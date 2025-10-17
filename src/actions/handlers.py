@@ -1,12 +1,14 @@
 from moduvent import emit, subscribe
 
-from actions.events import DrawCard, NormalSummon, PostPhase, SetPhase
+from actions.events import DrawCard, MoveCard, NormalSummon, PostPhase, SetPhase
 from cards.enum import CARD, EXPRESSION_WAY, FACE
 from cards.models import CardStatus
 from duel.enum import END_REASON
 from duel.events import DuelEnd, GetAvailableActions
+from field.enum import ZoneType
 from phase.enum import CONSEQUENCE, CONSEQUENCE_OF_TURN_1, PHASE
 from phase.models import PhaseWithPlayer
+from utils import select_main_field
 
 
 @subscribe(SetPhase)
@@ -39,7 +41,7 @@ def normal_summon_available(event: GetAvailableActions):
 
 @subscribe(NormalSummon)
 def normal_summon(event: NormalSummon):
-    duel, player, card = event.duel, event.player, event.card
+    player, card = event.player, event.card
     zone_index = ""
     while not (
         zone_index.isdigit()
@@ -82,3 +84,30 @@ def draw_card(event: DrawCard):
                     winner=duel.other_player(player),
                 )
             )
+
+
+@subscribe(MoveCard)
+def move_card(event: MoveCard):
+    card, from_zone, to_zone = event.card, event.from_zone, event.to_zone
+
+    if None in [card, from_zone, to_zone]:
+        raise ValueError(
+            f"Moving card={card}, from_zone={from_zone}, to_zone={to_zone} is not valid."
+        )
+    if from_zone.zone in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
+        zone_index = select_main_field(
+            "move_card", from_zone.player.field, from_zone.zone
+        )
+        from_zone.player.field.convert[from_zone.zone][zone_index] = None
+    elif from_zone == ZoneType.FIELD_ZONE:
+        from_zone.player.field.field_zone = None
+    else:
+        from_zone.player.field.convert[from_zone.zone].remove(card)
+
+    if to_zone.zone in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
+        zone_index = select_main_field("move_card", to_zone.player.field, to_zone.zone)
+        to_zone.player.field.convert[to_zone.zone][zone_index] = card
+    elif to_zone == ZoneType.FIELD_ZONE:
+        to_zone.player.field.field_zone = card
+    else:
+        to_zone.player.field.convert[to_zone.zone].append(card)
