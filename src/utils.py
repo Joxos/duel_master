@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, List
 from moduvent import emit
 
 from cards.enum import FACE
+from field.enum import ZoneType
 
 if TYPE_CHECKING:
     from duel.models import Duel
-    from field.enum import ZoneType
     from field.models import Field
     from player.models import Player
 
@@ -19,24 +19,20 @@ def cleanup_emit(result: List):
     return cleaned
 
 
-def select_main_field(banner: str, field: "Field", zone_type: "ZoneType"):
-    if zone_type not in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
-        raise ValueError("Invalid zone_type")
-    zone_index = ""
-    while not (
-        zone_index.isdigit()
-        and 0 < int(zone_index) <= 5
-        and field.convert[zone_type][int(zone_index) - 1] is None
-    ):
-        zone_index = input(f"({banner} - {zone_type.value}) >>> ")
-    return int(zone_index) - 1
-
-
-def select_range(banner: str, min_value: int, max_value: int):
+def select_range(min_value: int, max_value: int, banner: str = "..."):
     choice = ""
     while not (choice.isdigit() and min_value <= int(choice) <= max_value):
         choice = input(f"({banner}) >>> ")
     return int(choice) - 1
+
+
+def select_main_field(field: "Field", zone_type: "ZoneType"):
+    if zone_type not in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
+        raise ValueError("Invalid zone_type")
+    zone_index = None
+    while not (zone_index and field.convert[zone_type][zone_index] is None):
+        zone_index = select_range(1, 5, str(zone_type))
+    return zone_index
 
 
 def show_duel_info(duel: "Duel"):
@@ -110,7 +106,7 @@ def choose_and_emit_candidates(duel: "Duel", player: "Player", choice: List):
     print(f"{player.name}:")
     for i in range(len(choice)):
         print(f"{i + 1}. {choice[i]}")
-    choice = choice[select_range("choice", 1, len(choice))]
+    choice = choice[select_range(1, len(choice), "choice")]
     duel.history.append(choice)
     emit(choice)
     show_duel_info(duel)

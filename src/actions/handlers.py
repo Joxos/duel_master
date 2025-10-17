@@ -99,10 +99,9 @@ def move_card(event: MoveCard):
         raise ValueError(
             f"Moving card={card}, from_zone={from_zone}, to_zone={to_zone} is not valid."
         )
+
     if from_zone.zone in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
-        zone_index = select_main_field(
-            "move_card", from_zone.player.field, from_zone.zone
-        )
+        zone_index = select_main_field(from_zone.player.field, from_zone.zone)
         from_zone.player.field.convert[from_zone.zone][zone_index] = None
     elif from_zone == ZoneType.FIELD_ZONE:
         from_zone.player.field.field_zone = None
@@ -110,7 +109,7 @@ def move_card(event: MoveCard):
         from_zone.player.field.convert[from_zone.zone].remove(card)
 
     if to_zone.zone in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
-        zone_index = select_main_field("move_card", to_zone.player.field, to_zone.zone)
+        zone_index = select_main_field(to_zone.player.field, to_zone.zone)
         to_zone.player.field.convert[to_zone.zone][zone_index] = card
     elif to_zone == ZoneType.FIELD_ZONE:
         to_zone.player.field.field_zone = card

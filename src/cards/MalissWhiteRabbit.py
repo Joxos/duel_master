@@ -1,8 +1,8 @@
 from moduvent import emit
 
 from actions.events import MoveCard, NormalSummon
-from cards.enum import ATTRIBUTE, CARD, NAME_FIELD, RACE
-from cards.models import Card
+from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, NAME_FIELD, RACE
+from cards.models import Card, CardStatus
 from duel.events import GetAvailableActivations
 from effects.enum import CHECK_TYPE, UNIT
 from effects.events import Activate, Activation
@@ -58,13 +58,13 @@ class MalissWhiteRabbit(Card):
             print(f"{event.player.name}:")
             for i in range(len(candidates)):
                 print(f"{i + 1}. {candidates[i]}")
-            choice = candidates[select_range("add_to_hands", 1, len(candidates))]
-            event.duel.history.append(choice)
-            emit(
-                MoveCard(
-                    duel=event.duel,
-                    card=choice,
-                    from_zone=Location(player=event.player, zone=ZoneType.MAIN_DECK),
-                    to_zone=Location(player=event.player, zone=ZoneType.HAND),
-                )
+            choice = candidates[select_range(1, len(candidates), "Maliss Trap")]
+            choice.status = CardStatus(position=EXPRESSION_WAY.ATTACK, face=FACE.DOWN)
+            action = MoveCard(
+                duel=event.duel,
+                card=choice,
+                from_zone=Location(player=event.player, zone=ZoneType.MAIN_DECK),
+                to_zone=Location(player=event.player, zone=ZoneType.SPELL_TRAP_ZONE),
             )
+            event.duel.history.append(action)
+            emit(action)

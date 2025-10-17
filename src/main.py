@@ -16,7 +16,7 @@ def main(e):
         name="Alice",
         main_deck=cast(
             List,
-            [MalissWhiteRabbit() for _ in range(7)] + [MalissGWC06() for _ in range(3)],
+            [MalissWhiteRabbit() for _ in range(7)] + [MalissGWC06() for _ in range(7)],
         ),
         extra_deck=[],
     )
