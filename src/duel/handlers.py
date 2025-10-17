@@ -1,8 +1,8 @@
 from random import shuffle
 from sys import exit
-from typing import cast, MutableSequence
+from typing import MutableSequence, cast
 
-from moduvent import emit, subscribe, register
+from moduvent import emit, register, subscribe
 
 from actions.events import DrawCard, ShuffleDeck, Skip
 from cards.enum import EXPRESSION_WAY, FACE
@@ -21,7 +21,7 @@ from duel.models import Duel
 from field.enum import ZoneType
 from field.models import Location
 from phase.events import TurnChance
-from utils import cleanup_emit, show_duel_info
+from utils import choose_and_emit_candidates, cleanup_emit, show_duel_info
 
 
 @subscribe(DuelInit)
@@ -63,8 +63,8 @@ def setup_cards(event: SetupCards):
             card.zone = Location(player=belonging, zone=zone_type)
             card.belonging = belonging
             if card.effects:
-                for effect in card.effects.values():
-                    register(effect, GetAvailableActivations)
+                for index, (effect_availabe, effect) in card.effects.items():
+                    register(effect_availabe, GetAvailableActivations)
             duel.all_cards.append(card)
 
 
@@ -89,24 +89,17 @@ def show_result(event: DuelEnd):
 
 @subscribe(GetAndExecuteUserDecision)
 def get_user_decision(event: GetAndExecuteUserDecision):
-    actions = cleanup_emit(
-        emit(GetAvailableActions(duel=event.duel, player=event.player))
-    )
+    all_choice = []
     if activations := cleanup_emit(
         emit(GetAvailableActivations(duel=event.duel, player=event.player))
     ):
         activations.append(Skip(duel=event.duel, player=event.player))
-    if not (actions or activations):
-        emit(Skip(duel=event.duel, player=event.player))
+        all_choice = activations
+    elif actions := cleanup_emit(
+        emit(GetAvailableActions(duel=event.duel, player=event.player))
+    ):
+        all_choice = actions
+    else:
         return
 
-    print(f"{event.player.name}:")
-    for i in range(len(actions)):
-        print(f"{i + 1}. {actions[i]}")
-    choice = ""
-    while not (choice.isdigit() and 1 <= int(choice) <= len(actions)):
-        choice = input("(choice) >>> ")
-    choice = actions[int(choice) - 1]
-    event.duel.history.append(choice)
-    emit(choice)
-    show_duel_info(event.duel)
+    choose_and_emit_candidates(event.duel, event.player, all_choice)

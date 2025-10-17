@@ -1,15 +1,14 @@
-from typing import TYPE_CHECKING, List, TypeVar
+from typing import TYPE_CHECKING, List
+
+from moduvent import emit
 
 from cards.enum import FACE
 
 if TYPE_CHECKING:
-    from cards.models import Card
     from duel.models import Duel
     from field.enum import ZoneType
     from field.models import Field
-
-
-C = TypeVar("C", bound="Card")
+    from player.models import Player
 
 
 def cleanup_emit(result: List):
@@ -20,7 +19,7 @@ def cleanup_emit(result: List):
     return cleaned
 
 
-def select_main_field(banner: str, field: Field, zone_type: ZoneType):
+def select_main_field(banner: str, field: "Field", zone_type: "ZoneType"):
     if zone_type not in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
         raise ValueError("Invalid zone_type")
     zone_index = ""
@@ -31,6 +30,13 @@ def select_main_field(banner: str, field: Field, zone_type: ZoneType):
     ):
         zone_index = input(f"({banner} - {zone_type.value}) >>> ")
     return int(zone_index) - 1
+
+
+def select_range(banner: str, min_value: int, max_value: int):
+    choice = ""
+    while not (choice.isdigit() and min_value <= int(choice) <= max_value):
+        choice = input(f"({banner}) >>> ")
+    return int(choice) - 1
 
 
 def show_duel_info(duel: "Duel"):
@@ -98,3 +104,13 @@ def show_duel_info(duel: "Duel"):
     for line in lines:
         print(line)
     print(f"玩家1手牌: {', '.join([card.name for card in p1.field.hands])}")
+
+
+def choose_and_emit_candidates(duel: "Duel", player: "Player", choice: List):
+    print(f"{player.name}:")
+    for i in range(len(choice)):
+        print(f"{i + 1}. {choice[i]}")
+    choice = choice[select_range("choice", 1, len(choice))]
+    duel.history.append(choice)
+    emit(choice)
+    show_duel_info(duel)

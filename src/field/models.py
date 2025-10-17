@@ -1,12 +1,11 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List, Optional, Sequence, MutableSequence
+from typing import TYPE_CHECKING, List, Optional
 
 from field.enum import ZoneType
-from player.models import Player
 
 if TYPE_CHECKING:
     from cards.models import Card
-    from utils import C
+    from player.models import Player
 
 
 class Field:

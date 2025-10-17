@@ -1,5 +1,8 @@
-from moduvent import discover_modules, emit, subscribe
+from typing import List, cast
+
+from moduvent import emit, subscribe
 from ventrun import Main
+from ventrun import main as run_main
 
 from cards.MalissGWC06 import MalissGWC06
 from cards.MalissWhiteRabbit import MalissWhiteRabbit
@@ -11,8 +14,10 @@ from player.models import Player
 def main(e):
     player_1 = Player(
         name="Alice",
-        main_deck=[MalissWhiteRabbit() for _ in range(7)]
-        + [MalissGWC06() for _ in range(3)],
+        main_deck=cast(
+            List,
+            [MalissWhiteRabbit() for _ in range(7)] + [MalissGWC06() for _ in range(3)],
+        ),
         extra_deck=[],
     )
     player_2 = Player(
@@ -22,5 +27,4 @@ def main(e):
 
 
 if __name__ == "__main__":
-    discover_modules(".")
-    emit(Main())
+    run_main()

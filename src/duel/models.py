@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, List, Optional
 
-from actions.events import Skip
+from actions.events import Action
+from effects.models import Chain
 from phase.enum import PHASE
 from phase.events import TurnChance
 from phase.models import PhaseWithPlayer
@@ -14,9 +15,10 @@ class History(list):
     def slice_back_until(self, action_type):
         return next(
             (
-                self[i + 1 :]
+                self[i:]
                 for i in range(len(self) - 1, -1, -1)
                 if isinstance(self[i], action_type)
+                or issubclass(action_type, type(self[i]))
             ),
             [],
         )
@@ -25,7 +27,7 @@ class History(list):
         return self.slice_back_until(TurnChance)
 
     def current_occasions(self) -> List:
-        return self.slice_back_until(Skip)
+        return self.slice_back_until(Action)
 
 
 class Duel:
@@ -43,6 +45,7 @@ class Duel:
         self.phase = PhaseWithPlayer(PHASE.DRAW, player_1)
         self.turn_count = 1
         self.history = History()
+        self.current_chain = Chain()
         self.all_cards = []
 
     @property

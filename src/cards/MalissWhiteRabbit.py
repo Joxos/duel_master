@@ -1,9 +1,15 @@
-from actions.events import NormalSummon
+from moduvent import emit
+
+from actions.events import MoveCard, NormalSummon
 from cards.enum import ATTRIBUTE, CARD, NAME_FIELD, RACE
 from cards.models import Card
 from duel.events import GetAvailableActivations
 from effects.enum import CHECK_TYPE, UNIT
+from effects.events import Activate, Activation
 from effects.models import Times
+from field.enum import ZoneType
+from field.models import Location
+from utils import select_range
 
 
 class MalissWhiteRabbit(Card):
@@ -12,7 +18,7 @@ class MalissWhiteRabbit(Card):
             name="Maliss <P> White Rabbit",
             card_type=CARD.MONSTER.EFFECT,
             attribute=ATTRIBUTE.DARK,
-            effects={1: self.effect_1},
+            effects={1: (self.effect_1_available, self.effect_1)},
             attack=1200,
             defense=300,
             level=3,
@@ -22,25 +28,43 @@ class MalissWhiteRabbit(Card):
         )
 
     def effect_1_available(self, event: GetAvailableActivations):
-        return (
-            (
-                NormalSummon(duel=event.duel, player=event.player, card=self)
-                in event.duel.history.current_occasions()
-            )
+        if (
+            NormalSummon(duel=event.duel, player=event.player, card=self)
+            in event.duel.history.current_occasions()
             and Times(
                 unit=UNIT.TURN,
                 check_type=CHECK_TYPE.NAME,
                 counts=1,
             ).available(event, self)
             and any(
-                [
-                    card.name_field == NAME_FIELD.MALISS
-                    and card not in event.player.field.graveyard
-                    for card in event.player.field.main_deck
-                ]
+                card.name_field == NAME_FIELD.MALISS
+                and card.card_type in CARD.TRAP
+                and card not in event.player.field.graveyard
+                for card in event.player.field.main_deck
             )
-        )
+        ):
+            return [Activate(duel=event.duel, card=self, index=1, player=event.player)]
 
-    def effect_1(self):
-        # emit(Activation(duel=event.duel, card=self, index=1))
-        pass
+    def effect_1(self, event: Activate):
+        # costs
+        emit(Activation(duel=event.duel, card=self, index=1, player=event.player))
+        if candidates := [
+            card
+            for card in event.player.field.main_deck
+            if card.name_field == NAME_FIELD.MALISS
+            and card.card_type in CARD.TRAP
+            and card not in event.player.field.graveyard
+        ]:
+            print(f"{event.player.name}:")
+            for i in range(len(candidates)):
+                print(f"{i + 1}. {candidates[i]}")
+            choice = candidates[select_range("add_to_hands", 1, len(candidates))]
+            event.duel.history.append(choice)
+            emit(
+                MoveCard(
+                    duel=event.duel,
+                    card=choice,
+                    from_zone=Location(player=event.player, zone=ZoneType.MAIN_DECK),
+                    to_zone=Location(player=event.player, zone=ZoneType.HAND),
+                )
+            )

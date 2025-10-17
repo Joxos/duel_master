@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, List, Optional, Sequence, MutableSequence
+from typing import TYPE_CHECKING, List, Optional
 
 from field.models import Field
 
 if TYPE_CHECKING:
-    from utils import C
     from cards.models import Card
 
 

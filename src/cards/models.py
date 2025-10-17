@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Dict, Optional
+from typing import TYPE_CHECKING, Callable, Dict, Optional, Tuple
 
 from cards.enum import ATTRIBUTE, CARD, EXPRESSION_WAY, FACE, NAME_FIELD, RACE
-from field.models import Location
 
 if TYPE_CHECKING:
+    from field.models import Location
     from player.models import Player
 
 
@@ -26,7 +26,9 @@ class Card:
 
     # optional
     attribute: Optional["ATTRIBUTE"] = None
-    effects: Optional[Dict[int, Callable]] = None  # effect_index: effect_func
+    effects: Optional[Dict[int, Tuple[Callable, Callable]]] = (
+        None  # effect_index: effect_available, effect_activate
+    )
     attack: Optional[int] = None
     defense: Optional[int] = None
     level: Optional[int] = None
@@ -47,4 +49,4 @@ class Card:
         return f"{self.card_type} {self.name}: {self.race}/{self.attribute}, {self.level}⭐, {self.attack}/{self.defense}, {self.index}/{self.status}/{self.zone}/{self.belonging}"
 
     def __eq__(self, value):
-        return self is value
+        return self.name == value.name if isinstance(value, Card) else False

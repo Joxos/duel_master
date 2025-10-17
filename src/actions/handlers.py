@@ -6,6 +6,7 @@ from cards.models import CardStatus
 from duel.enum import END_REASON
 from duel.events import DuelEnd, GetAvailableActions
 from field.enum import ZoneType
+from field.models import Location
 from phase.enum import CONSEQUENCE, CONSEQUENCE_OF_TURN_1, PHASE
 from phase.models import PhaseWithPlayer
 from utils import select_main_field
@@ -49,8 +50,12 @@ def normal_summon(event: NormalSummon):
         and player.field.main_monster_zones[int(zone_index) - 1] is None
     ):
         zone_index = input("(zone_index) >>> ")
+    zone_index = int(zone_index) - 1
     card.status = CardStatus(position=EXPRESSION_WAY.ATTACK, face=FACE.UP)
-    player.field.main_monster_zones[int(zone_index) - 1] = card
+    card.zone = Location(
+        player=player, zone=ZoneType(ZoneType.MAIN_MONSTER_ZONE.value[zone_index])
+    )
+    player.field.main_monster_zones[zone_index] = card
     player.field.hands.remove(card)
 
 

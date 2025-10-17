@@ -10,36 +10,45 @@ if TYPE_CHECKING:
     from player.models import Player
 
 
+class Action(DuelStateEvent):
+    """Base class for all actions."""
+
+
 @dataclass
-class SetPhase(DuelStateEvent):
+class SetPhase(Action):
     phase: "PhaseWithPlayer"
 
 
 class PostPhase(SetPhase): ...
 
 
-class ShuffleDeck(DuelStateEvent): ...
+class ShuffleDeck(Action): ...
 
 
 @dataclass
-class DrawCard(DuelStateEvent):
+class DrawCard(Action):
     player: "Player"
     num: int
 
 
 @dataclass
-class NormalSummon(DuelStateEvent):
+class NormalSummon(Action):
     player: "Player"
     card: "Card"
 
+    def __eq__(self, value: object) -> bool:
+        if not isinstance(value, NormalSummon):
+            return False
+        return self.player is value.player and self.card is value.card
+
 
 @dataclass
-class Skip(DuelStateEvent):
+class Skip(Action):
     player: "Player"
 
 
 @dataclass
-class MoveCard(DuelStateEvent):
+class MoveCard(Action):
     card: "Card"
     from_zone: "Location"
     to_zone: "Location"
