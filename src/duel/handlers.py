@@ -61,10 +61,6 @@ def setup_cards(event: SetupCards):
             index += 1
             card.status = CardStatus(EXPRESSION_WAY.NONE, FACE.NONE)
             card.zone = Location(player=belonging, zone=zone_type)
-            card.belonging = belonging
-            if card.effects:
-                for index, (effect_availabe, effect) in card.effects.items():
-                    register(effect_availabe, GetAvailableActivations)
             duel.all_cards.append(card)
 
 

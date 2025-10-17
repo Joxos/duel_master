@@ -30,7 +30,7 @@ def select_main_field(field: "Field", zone_type: "ZoneType"):
     if zone_type not in [ZoneType.MAIN_MONSTER_ZONE, ZoneType.SPELL_TRAP_ZONE]:
         raise ValueError("Invalid zone_type")
     zone_index = None
-    while not (zone_index and field.convert[zone_type][zone_index] is None):
+    while zone_index is None or field.convert[zone_type][zone_index] is not None:
         zone_index = select_range(1, 5, str(zone_type))
     return zone_index
 

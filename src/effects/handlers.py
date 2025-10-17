@@ -35,3 +35,16 @@ def call_effect(event: Activate):
 
     # call the effect
     effect(event)
+
+@subscribe(GetAvailableActivations)
+def get_activations(event: GetAvailableActivations):
+    player, duel = event.player, event.duel
+    result = []
+    for card in player.field.hands + player.field.graveyard + player.field.banished + player.field.main_monster_zones + player.field.extra_monster_zones:
+        if card and card.effects:
+            result.extend(
+                Activate(duel=duel, player=player, card=card, index=index)
+                for index, (check_effect, _) in card.effects.items()
+                if check_effect(event)
+            )
+    return result
