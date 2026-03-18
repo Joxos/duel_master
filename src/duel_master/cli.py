@@ -1,4 +1,9 @@
 from duel_core import Deck, Duel, Player
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+console = Console()
 
 
 def build_demo_duel() -> Duel:
@@ -11,10 +16,14 @@ def build_demo_duel() -> Duel:
 
 
 def render(duel: Duel, view) -> None:
-    current_index = duel.state.players.index(view.current_player)
-    print(f"Current player: Player {current_index + 1}")
-    print(f"Phase: {view.phase.value}")
-    print(f"Hand sizes: {view.hand_sizes[0]} / {view.hand_sizes[1]}")
+    current_index = duel.state.players.index(view.public.current_player)
+    console.print(
+        Panel(
+            f"Current player: Player {current_index + 1}\nPhase: {view.public.phase.value}",
+            title="Duel Status",
+            border_style="cyan",
+        )
+    )
 
 
 def run_hotseat_demo() -> int:
@@ -22,14 +31,17 @@ def run_hotseat_demo() -> int:
     while True:
         render(duel, duel.observe(view=duel.state.current_player))
         actions = duel.available_actions()
-        print("Available actions:")
         if not actions:
-            print("  (none)")
+            console.print(Panel("(none)", title="Available actions", border_style="yellow"))
             input("")
             return 0
 
+        action_table = Table(title="Available actions")
+        action_table.add_column("#", justify="right", width=3)
+        action_table.add_column("Action")
         for index, action in enumerate(actions, start=1):
-            print(f"  {index}. {action}")
+            action_table.add_row(str(index), str(action))
+        console.print(action_table)
 
         choice = input("Choose action: ")
         if choice == "":
