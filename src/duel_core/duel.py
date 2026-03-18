@@ -63,20 +63,8 @@ class Duel:
         MultiAffair.model_rebuild(_types_namespace={"Duel": Duel})
 
     @property
-    def players(self) -> tuple[Player, Player]:
-        return self.kernel.state.players
-
-    @property
-    def current_player(self) -> Player:
-        return self.kernel.state.current_player
-
-    @property
-    def current_turn(self) -> int:
-        return self.kernel.state.current_turn
-
-    @property
-    def phase(self) -> Phase:
-        return self.kernel.state.phase
+    def state(self) -> DuelState:
+        return self.kernel.state
 
     def emit(self, affair) -> None:
         self.dispatcher.emit(affair)
@@ -93,11 +81,14 @@ class Duel:
     def observe(self, view: Player) -> DuelView:
         return DuelView(
             viewer=view,
-            current_player=self.current_player,
-            current_turn=self.current_turn,
-            phase=self.phase,
-            hand_sizes=(len(self.players[0].hand), len(self.players[1].hand)),
-            deck_sizes=(len(self.players[0].main_deck.cards), len(self.players[1].main_deck.cards)),
+            current_player=self.state.current_player,
+            current_turn=self.state.current_turn,
+            phase=self.state.phase,
+            hand_sizes=(len(self.state.players[0].hand), len(self.state.players[1].hand)),
+            deck_sizes=(
+                len(self.state.players[0].main_deck.cards),
+                len(self.state.players[1].main_deck.cards),
+            ),
         )
 
     def available_actions(self) -> list[ExecutableAffair]:
