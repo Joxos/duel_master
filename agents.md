@@ -15,3 +15,10 @@
 
 - 先不写文档页，优先写`examples/`下的示例对局。
 - `examples/`示例必须可执行，并且可被冒烟测试直接调用。
+
+#### 架构讨论持久化
+
+- 每次讨论结束后，必须同步更新`docs/sketch/architecture.md`。
+- 每次会话都要在`docs/sketch/sessions/`下留纪要。
+- 达成结论的讨论点要在`docs/sketch/decisions/`下单独落盘。
+- 任何实现都应先对齐这些持久化记录，避免上下文切割导致的偏航。
