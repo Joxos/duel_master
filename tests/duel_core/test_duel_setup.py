@@ -16,9 +16,9 @@ def build_players() -> tuple[Player, Player]:
 def test_constructor_preserves_current_setup_behavior() -> None:
     duel = Duel(players=build_players())
 
-    assert duel.players[0].hand == [f"p1-{i}" for i in range(INITIAL_DRAW_NUM)]
-    assert duel.players[1].hand == [f"p2-{i}" for i in range(INITIAL_DRAW_NUM)]
-    assert duel.available_actions()[0].label == "End turn"
+    assert duel.state.players[0].hand == [f"p1-{i}" for i in range(INITIAL_DRAW_NUM)]
+    assert duel.state.players[1].hand == [f"p2-{i}" for i in range(INITIAL_DRAW_NUM)]
+    assert str(duel.available_actions()[0]) == "Enter Standby Phase"
 
 
 def test_constructor_composes_plugins_from_pyproject(monkeypatch) -> None:
