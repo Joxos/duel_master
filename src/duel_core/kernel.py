@@ -8,7 +8,6 @@ from duel_core.affairs import (
     DuelAffair,
     EnterPhase,
     ExecutionRequest,
-    ExitPhase,
     Forbid,
     MultiAffair,
     TurnCleanup,
@@ -27,11 +26,27 @@ class Kernel:
         dispatcher.on(Draw)(self._apply_draw)
         dispatcher.on(Forbid)(self._register_forbid)
         dispatcher.on(TurnCleanup)(self._cleanup_forbids)
-        dispatcher.on(ExitPhase)(self._handle_exit_phase)
 
     def is_forbidden(self, target: Callable[..., object]) -> bool:
         return any(
-            forbid.target is target and forbid.outdated_when.turn >= self.state.current_turn
+            forbid.target is target
+            and forbid.source_phase is None
+            and forbid.target_phase is None
+            and forbid.outdated_when.turn >= self.state.current_turn
+            for forbid in self._forbids
+        )
+
+    def is_phase_transition_forbidden(
+        self,
+        target: Callable[..., object],
+        source_phase: Phase,
+        target_phase: Phase,
+    ) -> bool:
+        return any(
+            forbid.target is target
+            and forbid.source_phase is source_phase
+            and forbid.target_phase is target_phase
+            and forbid.outdated_when.turn >= self.state.current_turn
             for forbid in self._forbids
         )
 
@@ -44,15 +59,25 @@ class Kernel:
             raise ValueError(f"Affair is forbidden for requester: {affair.requester.__name__}")
         affair.player.hand.extend(affair.player.main_deck.draw(affair.num))
 
+    def _apply_enter_phase(self, affair: EnterPhase) -> None:
+        if self.is_phase_transition_forbidden(
+            affair.requester,
+            affair.source_phase,
+            affair.phase,
+        ):
+            raise ValueError(f"Affair is forbidden for requester: {affair.requester.__name__}")
+        if affair.phase is Phase.END:
+            self._advance_to_next_turn(affair)
+            return
+        self.state.phase = affair.phase
+
     def _register_forbid(self, affair: Forbid) -> None:
         self._forbids.append(affair)
 
     def _cleanup_forbids(self, affair: TurnCleanup) -> None:
         self._forbids = [forbid for forbid in self._forbids if forbid.outdated_when != affair]
 
-    def _handle_exit_phase(self, affair: ExitPhase) -> None:
-        if affair.phase is not Phase.END:
-            return
+    def _advance_to_next_turn(self, affair: EnterPhase) -> None:
         current_index = self.state.players.index(self.state.current_player)
         self.state.current_player = self.state.players[
             (current_index + 1) % len(self.state.players)
@@ -61,13 +86,24 @@ class Kernel:
         affair.duel.emit(TurnCleanup(duel=affair.duel, turn=self.state.current_turn))
         self.state.phase = Phase.DRAW
         affair.duel.emit(
-            EnterPhase(duel=affair.duel, phase=Phase.DRAW, requester=self._handle_exit_phase)
+            EnterPhase(
+                duel=affair.duel,
+                phase=Phase.DRAW,
+                source_phase=Phase.END,
+                requester=self._advance_to_next_turn,
+            )
         )
+
+    def _expand_multi_affair(self, affair: MultiAffair) -> None:
+        for child in affair.children:
+            self._execute_affair(affair.duel, child)
 
     def _execute_affair(self, duel, affair: DuelAffair) -> None:
         if isinstance(affair, MultiAffair):
-            for child in affair.children:
-                self._execute_affair(duel, child)
+            self._expand_multi_affair(affair)
             return
+
+        if isinstance(affair, EnterPhase):
+            self._apply_enter_phase(affair)
 
         duel.emit(affair)
