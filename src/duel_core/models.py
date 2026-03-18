@@ -35,13 +35,22 @@ class DuelState(BaseModel):
     current_turn: int
     phase: Phase
 
+    @property
+    def opponent(self) -> Player:
+        current_index = self.players.index(self.current_player)
+        return self.players[(current_index + 1) % len(self.players)]
 
-class DuelView(BaseModel):
+
+class PublicView(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    viewer: Player
     current_player: Player
     current_turn: int
     phase: Phase
-    hand_sizes: tuple[int, int]
-    deck_sizes: tuple[int, int]
+
+
+class PlayerView(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+    viewer: Player
+    public: PublicView

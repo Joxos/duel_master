@@ -10,7 +10,7 @@ from duel_core.affairs import (
     TurnCleanup,
 )
 from duel_core.duel import Duel
-from duel_core.models import Deck, DuelView, Player
+from duel_core.models import Deck, Player, PlayerView, PublicView
 from duel_core.phase import Phase
 
 __all__ = [
@@ -19,7 +19,6 @@ __all__ = [
     "Draw",
     "Duel",
     "DuelInit",
-    "DuelView",
     "EnterPhase",
     "ExecutableAffair",
     "ExitPhase",
@@ -27,5 +26,7 @@ __all__ = [
     "MultiAffair",
     "Phase",
     "Player",
+    "PlayerView",
+    "PublicView",
     "TurnCleanup",
 ]

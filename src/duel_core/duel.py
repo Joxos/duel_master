@@ -17,7 +17,7 @@ from duel_core.affairs import (
     TurnCleanup,
 )
 from duel_core.kernel import Kernel
-from duel_core.models import DuelView, Player, DuelState
+from duel_core.models import DuelState, Player, PlayerView, PublicView
 from duel_core.phase import Phase
 
 PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
@@ -78,16 +78,13 @@ class Duel:
         self.emit(DuelInit(duel=self))
         self._setup_done = True
 
-    def observe(self, view: Player) -> DuelView:
-        return DuelView(
+    def observe(self, view: Player) -> PlayerView:
+        return PlayerView(
             viewer=view,
-            current_player=self.state.current_player,
-            current_turn=self.state.current_turn,
-            phase=self.state.phase,
-            hand_sizes=(len(self.state.players[0].hand), len(self.state.players[1].hand)),
-            deck_sizes=(
-                len(self.state.players[0].main_deck.cards),
-                len(self.state.players[1].main_deck.cards),
+            public=PublicView(
+                current_player=self.state.current_player,
+                current_turn=self.state.current_turn,
+                phase=self.state.phase,
             ),
         )
 

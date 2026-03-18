@@ -17,7 +17,7 @@ def test_observe_returns_renderable_view_for_current_player() -> None:
     view = duel.observe(view=duel.state.current_player)
 
     assert view.viewer is duel.state.current_player
-    assert view.current_player is duel.state.current_player
+    assert view.public.current_player is duel.state.current_player
 
 
 def test_available_actions_returns_executable_affairs() -> None:
