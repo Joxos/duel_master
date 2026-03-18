@@ -10,8 +10,9 @@ def build_demo_duel() -> Duel:
     )
 
 
-def render(view) -> None:
-    print(f"Current player: Player {1 if view.current_player is view.viewer else 2}")
+def render(duel: Duel, view) -> None:
+    current_index = duel.state.players.index(view.current_player)
+    print(f"Current player: Player {current_index + 1}")
     print(f"Phase: {view.phase.value}")
     print(f"Hand sizes: {view.hand_sizes[0]} / {view.hand_sizes[1]}")
 
@@ -19,7 +20,7 @@ def render(view) -> None:
 def run_hotseat_demo() -> int:
     duel = build_demo_duel()
     while True:
-        render(duel.observe(view=duel.current_player))
+        render(duel, duel.observe(view=duel.state.current_player))
         actions = duel.available_actions()
         print("Available actions:")
         if not actions:
@@ -28,7 +29,7 @@ def run_hotseat_demo() -> int:
             return 0
 
         for index, action in enumerate(actions, start=1):
-            print(f"  {index}. {action.label}")
+            print(f"  {index}. {action}")
 
         choice = input("Choose action: ")
         if choice == "":
