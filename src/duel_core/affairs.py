@@ -27,6 +27,15 @@ class DuelAffair(MutableAffair):
 class ActionableDuelAffair(DuelAffair):
     requester: Callable[..., object]
 
+    def __eq__(self, other: object) -> bool:
+        if type(self) is not type(other):
+            return NotImplemented
+
+        if not isinstance(other, ActionableDuelAffair):
+            return NotImplemented
+
+        return self.requester is other.requester
+
 
 class ExecutableAffair(ActionableDuelAffair):
     label: str | None = None
@@ -57,15 +66,21 @@ class EnterPhase(ExecutableAffair):
     source_phase: Phase
 
     def __str__(self) -> str:
-        labels = {
-            Phase.DRAW: "Enter Draw Phase",
-            Phase.STANDBY: "Enter Standby Phase",
-            Phase.MAIN_1: "Enter Main Phase 1",
-            Phase.BATTLE: "Enter Battle Phase",
-            Phase.MAIN_2: "Enter Main Phase 2",
-            Phase.END: "Enter End Phase",
-        }
-        return labels[self.phase]
+        if self.phase is Phase.MAIN_1:
+            return "Enter Main Phase 1"
+        if self.phase is Phase.MAIN_2:
+            return "Enter Main Phase 2"
+        return f"Enter {self.phase.value} Phase"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, EnterPhase):
+            return NotImplemented
+
+        return (
+            self.requester is other.requester
+            and self.source_phase is other.source_phase
+            and self.phase is other.phase
+        )
 
 
 class ExitPhase(ExecutableAffair):
@@ -80,9 +95,23 @@ class Draw(ExecutableAffair):
     player: Player
     num: int
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Draw):
+            return NotImplemented
+
+        return (
+            self.requester is other.requester
+            and self.player is other.player
+            and self.num == other.num
+        )
+
 
 class Forbid(DuelAffair):
-    target: Callable[..., object]
+    target: ActionableDuelAffair
     outdated_when: TurnCleanup
-    source_phase: Phase | None = None
-    target_phase: Phase | None = None
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Forbid):
+            return NotImplemented
+
+        return self.target == other.target

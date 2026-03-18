@@ -1,8 +1,7 @@
-from collections.abc import Callable
-
 from affairon import Dispatcher
 
 from duel_core.affairs import (
+    ActionableDuelAffair,
     CompletedAffair,
     Draw,
     DuelAffair,
@@ -27,26 +26,9 @@ class Kernel:
         dispatcher.on(Forbid)(self._register_forbid)
         dispatcher.on(TurnCleanup)(self._cleanup_forbids)
 
-    def is_forbidden(self, target: Callable[..., object]) -> bool:
+    def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
         return any(
-            forbid.target is target
-            and forbid.source_phase is None
-            and forbid.target_phase is None
-            and forbid.outdated_when.turn >= self.state.current_turn
-            for forbid in self._forbids
-        )
-
-    def is_phase_transition_forbidden(
-        self,
-        target: Callable[..., object],
-        source_phase: Phase,
-        target_phase: Phase,
-    ) -> bool:
-        return any(
-            forbid.target is target
-            and forbid.source_phase is source_phase
-            and forbid.target_phase is target_phase
-            and forbid.outdated_when.turn >= self.state.current_turn
+            forbid.target == affair and forbid.outdated_when.turn >= self.state.current_turn
             for forbid in self._forbids
         )
 
@@ -55,16 +37,12 @@ class Kernel:
         affair.duel.emit(CompletedAffair(duel=affair.duel, affair=affair.affair))
 
     def _apply_draw(self, affair: Draw) -> None:
-        if self.is_forbidden(affair.requester):
+        if self.is_forbidden(affair):
             raise ValueError(f"Affair is forbidden for requester: {affair.requester.__name__}")
         affair.player.hand.extend(affair.player.main_deck.draw(affair.num))
 
     def _apply_enter_phase(self, affair: EnterPhase) -> None:
-        if self.is_phase_transition_forbidden(
-            affair.requester,
-            affair.source_phase,
-            affair.phase,
-        ):
+        if self.is_forbidden(affair):
             raise ValueError(f"Affair is forbidden for requester: {affair.requester.__name__}")
         if affair.phase is Phase.END:
             self._advance_to_next_turn(affair)
@@ -78,10 +56,7 @@ class Kernel:
         self._forbids = [forbid for forbid in self._forbids if forbid.outdated_when != affair]
 
     def _advance_to_next_turn(self, affair: EnterPhase) -> None:
-        current_index = self.state.players.index(self.state.current_player)
-        self.state.current_player = self.state.players[
-            (current_index + 1) % len(self.state.players)
-        ]
+        self.state.current_player = self.state.opponent
         self.state.current_turn += 1
         affair.duel.emit(TurnCleanup(duel=affair.duel, turn=self.state.current_turn))
         self.state.phase = Phase.DRAW

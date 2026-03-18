@@ -50,10 +50,16 @@ def setup(dispatcher: Dispatcher) -> None:
 
     @dispatcher.on(DuelInit)
     def forbid_initial_turn_draw(affair: DuelInit) -> None:
+        draw_action = Draw(
+            duel=affair.duel,
+            player=affair.duel.state.current_player,
+            num=TURN_DRAW_NUM,
+            requester=turn_draw,
+        )
         affair.duel.emit(
             Forbid(
                 duel=affair.duel,
-                target=turn_draw,
+                target=draw_action,
                 outdated_when=TurnCleanup(
                     duel=affair.duel, turn=affair.duel.state.current_turn + 1
                 ),
@@ -62,33 +68,33 @@ def setup(dispatcher: Dispatcher) -> None:
 
     @dispatcher.on(DuelInit)
     def forbid_first_turn_battle(affair: DuelInit) -> None:
+        battle_action = EnterPhase(
+            duel=affair.duel,
+            phase=Phase.BATTLE,
+            source_phase=Phase.MAIN_1,
+            requester=phase_actions,
+        )
         affair.duel.emit(
             Forbid(
                 duel=affair.duel,
-                target=phase_actions,
+                target=battle_action,
                 outdated_when=TurnCleanup(
                     duel=affair.duel, turn=affair.duel.state.current_turn + 1
                 ),
-                source_phase=Phase.MAIN_1,
-                target_phase=Phase.BATTLE,
             )
         )
 
     @dispatcher.on(AvailableActions)
     def phase_actions(affair: AvailableActions) -> None:
         for target_phase in PHASE_GRAPH.get(affair.duel.state.phase, ()):
-            if affair.duel.kernel.is_phase_transition_forbidden(
-                phase_actions,
-                affair.duel.state.phase,
-                target_phase,
-            ):
+            action = EnterPhase(
+                duel=affair.duel,
+                phase=target_phase,
+                source_phase=affair.duel.state.phase,
+                requester=phase_actions,
+            )
+
+            if affair.duel.kernel.is_forbidden(action):
                 continue
 
-            affair.actions.append(
-                EnterPhase(
-                    duel=affair.duel,
-                    phase=target_phase,
-                    source_phase=affair.duel.state.phase,
-                    requester=phase_actions,
-                )
-            )
+            affair.actions.append(action)
