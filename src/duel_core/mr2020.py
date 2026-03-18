@@ -1,11 +1,9 @@
 from affairon import Dispatcher
-
 from duel_core.affairs import (
     AvailableActions,
     Draw,
     DuelInit,
     EnterPhase,
-    ExitPhase,
     Forbid,
     TurnCleanup,
 )
@@ -13,6 +11,14 @@ from duel_core.phase import Phase
 
 TURN_DRAW_NUM = 1
 INITIAL_DRAW_NUM = 5
+
+PHASE_GRAPH: dict[Phase, tuple[Phase, ...]] = {
+    Phase.DRAW: (Phase.STANDBY,),
+    Phase.STANDBY: (Phase.MAIN_1,),
+    Phase.MAIN_1: (Phase.BATTLE, Phase.END),
+    Phase.BATTLE: (Phase.MAIN_2,),
+    Phase.MAIN_2: (Phase.END,),
+}
 
 
 def setup(dispatcher: Dispatcher) -> None:
@@ -24,7 +30,7 @@ def setup(dispatcher: Dispatcher) -> None:
         affair.duel.emit(
             Draw(
                 duel=affair.duel,
-                player=affair.duel.current_player,
+                player=affair.duel.state.current_player,
                 num=TURN_DRAW_NUM,
                 requester=turn_draw,
             )
@@ -32,7 +38,7 @@ def setup(dispatcher: Dispatcher) -> None:
 
     @dispatcher.on(DuelInit)
     def initial_draw(affair: DuelInit) -> None:
-        for player in affair.duel.players:
+        for player in affair.duel.state.players:
             affair.duel.emit(
                 Draw(
                     duel=affair.duel,
@@ -48,32 +54,41 @@ def setup(dispatcher: Dispatcher) -> None:
             Forbid(
                 duel=affair.duel,
                 target=turn_draw,
-                outdated_when=TurnCleanup(duel=affair.duel, turn=affair.duel.current_turn + 1),
+                outdated_when=TurnCleanup(
+                    duel=affair.duel, turn=affair.duel.state.current_turn + 1
+                ),
+            )
+        )
+
+    @dispatcher.on(DuelInit)
+    def forbid_first_turn_battle(affair: DuelInit) -> None:
+        affair.duel.emit(
+            Forbid(
+                duel=affair.duel,
+                target=phase_actions,
+                outdated_when=TurnCleanup(
+                    duel=affair.duel, turn=affair.duel.state.current_turn + 1
+                ),
+                source_phase=Phase.MAIN_1,
+                target_phase=Phase.BATTLE,
             )
         )
 
     @dispatcher.on(AvailableActions)
-    def end_turn_action(affair: AvailableActions) -> None:
-        if affair.duel.phase is not Phase.DRAW:
-            return
-        affair.actions.append(
-            ExitPhase(
-                label="End turn",
-                duel=affair.duel,
-                phase=Phase.END,
-                requester=end_turn_action,
-            )
-        )
+    def phase_actions(affair: AvailableActions) -> None:
+        for target_phase in PHASE_GRAPH.get(affair.duel.state.phase, ()):
+            if affair.duel.kernel.is_phase_transition_forbidden(
+                phase_actions,
+                affair.duel.state.phase,
+                target_phase,
+            ):
+                continue
 
-    @dispatcher.on(AvailableActions)
-    def enter_draw_phase_action(affair: AvailableActions) -> None:
-        if affair.duel.phase is Phase.DRAW:
-            return
-        affair.actions.append(
-            EnterPhase(
-                label="Enter Draw Phase",
-                duel=affair.duel,
-                phase=Phase.DRAW,
-                requester=enter_draw_phase_action,
+            affair.actions.append(
+                EnterPhase(
+                    duel=affair.duel,
+                    phase=target_phase,
+                    source_phase=affair.duel.state.phase,
+                    requester=phase_actions,
+                )
             )
-        )

@@ -1,4 +1,4 @@
-from duel_core import Deck, Duel, EnterPhase, ExitPhase, Phase, Player
+from duel_core import Deck, Duel, EnterPhase, Phase, Player
 from duel_core.mr2020 import INITIAL_DRAW_NUM, TURN_DRAW_NUM
 
 
@@ -18,16 +18,23 @@ def build_duel() -> Duel:
 def test_duel_init_draws_initial_hands() -> None:
     duel = build_duel()
 
-    assert duel.current_player is duel.players[0]
-    assert duel.players[0].hand == [f"p1-{i}" for i in range(INITIAL_DRAW_NUM)]
-    assert duel.players[1].hand == [f"p2-{i}" for i in range(INITIAL_DRAW_NUM)]
+    assert duel.state.current_player is duel.state.players[0]
+    assert duel.state.players[0].hand == [f"p1-{i}" for i in range(INITIAL_DRAW_NUM)]
+    assert duel.state.players[1].hand == [f"p2-{i}" for i in range(INITIAL_DRAW_NUM)]
 
 
 def test_first_draw_phase_is_forbidden_for_opening_player() -> None:
     duel = build_duel()
 
     try:
-        duel.emit(EnterPhase(duel=duel, phase=Phase.DRAW, requester=phase_requester))
+        duel.emit(
+            EnterPhase(
+                duel=duel,
+                phase=Phase.DRAW,
+                source_phase=Phase.END,
+                requester=phase_requester,
+            )
+        )
     except ValueError as exc:
         assert "Affair is forbidden" in str(exc)
     else:
@@ -37,16 +44,28 @@ def test_first_draw_phase_is_forbidden_for_opening_player() -> None:
 def test_later_draw_phase_draws_one_card_after_cleanup() -> None:
     duel = build_duel()
     try:
-        duel.emit(EnterPhase(duel=duel, phase=Phase.DRAW, requester=phase_requester))
+        duel.emit(
+            EnterPhase(
+                duel=duel,
+                phase=Phase.DRAW,
+                source_phase=Phase.END,
+                requester=phase_requester,
+            )
+        )
     except ValueError as exc:
         assert "Affair is forbidden" in str(exc)
     else:
         raise AssertionError("expected opening draw to fail fast before cleanup")
 
-    next_player = duel.players[1]
+    next_player = duel.state.players[1]
     before = len(next_player.hand)
 
-    duel.emit(ExitPhase(duel=duel, phase=Phase.END, requester=phase_requester))
+    duel.do(duel.available_actions()[0])
+    duel.do(duel.available_actions()[0])
+    end_action = next(
+        action for action in duel.available_actions() if str(action) == "Enter End Phase"
+    )
+    duel.do(end_action)
 
     assert len(next_player.hand) == before + TURN_DRAW_NUM
 
@@ -63,6 +82,7 @@ def test_unknown_user_action_is_rejected() -> None:
                 label="Unknown action",
                 duel=duel,
                 phase=Phase.DRAW,
+                source_phase=Phase.END,
                 requester=unknown_requester,
             )
         )
