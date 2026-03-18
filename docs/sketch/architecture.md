@@ -114,7 +114,8 @@ The first implementation may begin against the following narrowed boundary:
 - User choice flows through `do(action)`.
 - Internal rule semantics still flow through emitted affairs, not direct rule branches on `Duel`.
 - Public turn progression now reaches the next actor through `EnterPhase(END) -> TurnCleanup -> EnterPhase(DRAW)`.
-- Actionable in-game affairs now carry `requester` so rules and forbids can distinguish semantic origin.
+- Actionable in-game affairs now carry `requester`, and `Forbid` now stores the
+  concrete forbidden action affair rather than only a requester callable.
 - Phase progression within a turn is currently modeled through `available_actions()` rather than a broader chance/priority system.
 
 - On user action submission, `Duel.do(...)` emits `ExecutionRequest` for the
@@ -166,9 +167,9 @@ current slice.
   3. emit `CompletedAffair(affair: ExecutableAffair)` after execution finishes
 - Once a `CompletedAffair` is emitted, newly available trigger windows return to
   the same `available_actions()` collection seam, forming a closed loop.
-- `Forbid.target` should continue to point at a specific callable identity, such
-  as `turn_draw`, because multiple sources may emit the same affair type while
-  still needing source-level distinction.
+- `Forbid` should target a concrete actionable affair instance, with affair
+  equality responsible for distinguishing rule-relevant identity such as
+  requester and transition edge.
 - `MultiAffair` should remain opaque during conflict-resolution checks for the
   same reason: source identity matters before actual execution.
 - `MultiAffair` should only be expanded into ordered child affairs at the actual
