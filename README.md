@@ -1,26 +1,33 @@
-# duel_engine
+# duel-master
 
-This repository is intentionally reset on `main` for a fresh architecture-first
-implementation.
+`dev` is the clean-slate development branch for the next implementation of
+`duel-master`.
 
-## Branch Policy
+## Branch policy
 
-- `legacy`: previous experimental implementation history
-- `main`: clean branch for the new design and development path
+- `archive/current-impl`: preserved snapshot of the rejected implementation
+- `legacy`: older experimental history
+- `main`: clean baseline branch
+- `dev`: active branch for fresh development
 
-## Current State
+## Current baseline
 
-- Runtime implementation has been cleared from `main`
-- New development should proceed from first principles
-- Architectural boundaries should be reintroduced deliberately, not by carrying
-  over old patches
+This branch intentionally starts from a minimal Python 3.12 scaffold:
 
-## Kept on Main
+- `pydantic` is available for canonical state models
+- `affairon` is available for typed runtime seams
+- `pytest`, `ruff`, and `basedpyright` are the retained development tools
 
-- project tooling (`pyproject.toml`, `uv.lock`, `.gitignore`)
-- development constraints (`agents.md`)
+## Discussion persistence
 
-## Next Expectation
+To avoid context loss, every architecture discussion must be persisted under
+`docs/sketch/`:
 
-Rebuild the engine from scenario-driven architecture validation rather than
-incrementally patching the previous prototype.
+- `docs/sketch/architecture.md`: current working architecture draft
+- `docs/sketch/sessions/`: session-by-session notes
+- `docs/sketch/decisions/`: durable decisions and rationale
+
+## Immediate goal
+
+Rebuild from first principles through small executable slices, while keeping the
+architecture discussion durable and reviewable.

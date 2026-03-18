@@ -1,27 +1,42 @@
 [project]
-name = "yugioh-duel-engine"
+name = "duel-master"
 version = "0.0.1"
-description = "Yugioh duel engine (skeleton)"
-requires-python = ">=3.11"
-dependencies = []
+description = "Fresh architecture-first scaffold for duel-master"
+requires-python = ">=3.12"
+dependencies = [
+  "pydantic>=2.12.0",
+  "affairon @ file:///home/Joxos/source/affairon",
+]
+
+[project.scripts]
+duel-master = "duel_master.cli:main"
+
+[tool.affairon]
+local_plugins = ["duel_core.mr2020:setup"]
 
 [dependency-groups]
 dev = [
   "pytest>=8.3.0",
   "ruff>=0.11.0",
   "basedpyright>=1.29.0",
-  "hypothesis>=6.130.0",
 ]
-
-[tool]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.basedpyright]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
