@@ -14,10 +14,10 @@ def build_duel() -> Duel:
 def test_observe_returns_renderable_view_for_current_player() -> None:
     duel = build_duel()
 
-    view = duel.observe(view=duel.current_player)
+    view = duel.observe(view=duel.state.current_player)
 
-    assert view.viewer is duel.current_player
-    assert view.current_player is duel.current_player
+    assert view.viewer is duel.state.current_player
+    assert view.current_player is duel.state.current_player
 
 
 def test_available_actions_returns_executable_affairs() -> None:
@@ -26,7 +26,7 @@ def test_available_actions_returns_executable_affairs() -> None:
     actions = duel.available_actions()
 
     assert all(isinstance(action, ExecutableAffair) for action in actions)
-    assert actions[0].label == "End turn"
+    assert str(actions[0]) == "Enter Standby Phase"
 
 
 def test_available_actions_are_collected_via_dispatcher_listeners() -> None:
@@ -41,7 +41,8 @@ def test_available_actions_are_collected_via_dispatcher_listeners() -> None:
             EnterPhase(
                 label="Custom draw entry",
                 duel=duel,
-                phase=duel.phase,
+                phase=duel.state.phase,
+                source_phase=duel.state.phase,
                 requester=custom_requester,
             )
         )

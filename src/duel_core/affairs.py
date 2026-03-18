@@ -54,6 +54,18 @@ class MultiAffair(ExecutableAffair):
 
 class EnterPhase(ExecutableAffair):
     phase: Phase
+    source_phase: Phase
+
+    def __str__(self) -> str:
+        labels = {
+            Phase.DRAW: "Enter Draw Phase",
+            Phase.STANDBY: "Enter Standby Phase",
+            Phase.MAIN_1: "Enter Main Phase 1",
+            Phase.BATTLE: "Enter Battle Phase",
+            Phase.MAIN_2: "Enter Main Phase 2",
+            Phase.END: "Enter End Phase",
+        }
+        return labels[self.phase]
 
 
 class ExitPhase(ExecutableAffair):
@@ -72,3 +84,5 @@ class Draw(ExecutableAffair):
 class Forbid(DuelAffair):
     target: Callable[..., object]
     outdated_when: TurnCleanup
+    source_phase: Phase | None = None
+    target_phase: Phase | None = None
