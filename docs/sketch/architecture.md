@@ -41,9 +41,12 @@ Current anchor flow:
 1. duel is initialized
 2. MR2020 emits opening draws for both players
 3. MR2020 emits a forbid against the first `turn_draw`
-4. entering `Draw` emits a requested `Draw` for the current player
-5. if the request is not forbidden, one card is drawn
-6. exiting `End` emits `TurnCleanup` and then the next `EnterPhase(Draw)`
+4. MR2020 emits a forbid against first-turn battle entry
+5. entering `Draw` emits a requested `Draw` for the current player
+6. if the request is not forbidden, one card is drawn
+7. available actions advance through `Standby`, `Main Phase 1`, optional `Battle`, `Main Phase 2`, and `End`
+8. first-turn battle entry is modeled by `Forbid`
+9. entering `End` triggers `TurnCleanup`, switches to the next player, and emits the next `EnterPhase(Draw)`
 
 This is the grounded flow for the current slice.
 
@@ -60,6 +63,13 @@ This is the grounded flow for the current slice.
 - `TurnCleanup`
 - one current actor
 - one current turn counter
+- baseline turn phases:
+  - `Draw`
+  - `Standby`
+  - `Main Phase 1`
+  - `Battle`
+  - `Main Phase 2`
+  - `End`
 
 ### Grounded process rule
 
@@ -103,13 +113,18 @@ The first implementation may begin against the following narrowed boundary:
 - Available user-side progression is surfaced through `available_actions()` for the current actor only.
 - User choice flows through `do(action)`.
 - Internal rule semantics still flow through emitted affairs, not direct rule branches on `Duel`.
-- Public turn progression now reaches the next actor through `ExitPhase(END) -> TurnCleanup -> EnterPhase(DRAW)`.
+- Public turn progression now reaches the next actor through `EnterPhase(END) -> TurnCleanup -> EnterPhase(DRAW)`.
 - Actionable in-game affairs now carry `requester` so rules and forbids can distinguish semantic origin.
+- Phase progression within a turn is currently modeled through `available_actions()` rather than a broader chance/priority system.
 
 - On user action submission, `Duel.do(...)` emits `ExecutionRequest` for the
   chosen `ExecutableAffair` into the duel-bound dispatcher.
 - `Kernel` now owns runtime `State` for the current slice and emits
   `CompletedAffair` after execution finishes.
+- Raw runtime access now goes through `Duel.state`.
+- The previous convenience proxies on `Duel` for `players`, `current_player`,
+  `current_turn`, and `phase` have been removed in favor of explicit state
+  access.
 - Contradiction resolution and allow/forbid precedence remain expansion targets, not grounded first-slice behavior.
 - Downstream timing ownership remains provisional until a narrated trigger/timing case forces that decision.
 
@@ -161,6 +176,8 @@ current slice.
 - The validation strategy for this phase is intentionally narrow: maintain one
   smoke flow that proves available-action collection and user-driven duel
   progression still behave as expected.
+- The current branch favors pushing the model forward first, then revisiting
+  refactors only after the modeled slice reveals where pressure actually forms.
 
 ### Provisional notes
 
