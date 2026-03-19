@@ -5,8 +5,10 @@ from duel_core.affairs import (
     DuelInit,
     EnterPhase,
     Forbid,
+    NormalSummon,
     TurnCleanup,
 )
+from duel_core.models import Card
 from duel_core.phase import Phase
 
 TURN_DRAW_NUM = 1
@@ -19,6 +21,10 @@ PHASE_GRAPH: dict[Phase, tuple[Phase, ...]] = {
     Phase.BATTLE: (Phase.MAIN_2,),
     Phase.MAIN_2: (Phase.END,),
 }
+
+
+def can_normal_summon(card: Card) -> bool:
+    return card.level is not None and card.level <= 4
 
 
 def setup(dispatcher: Dispatcher) -> None:
@@ -98,3 +104,24 @@ def setup(dispatcher: Dispatcher) -> None:
                 continue
 
             affair.actions.append(action)
+
+    @dispatcher.on(AvailableActions)
+    def normal_summon_actions(affair: AvailableActions) -> None:
+        if affair.duel.state.phase not in (Phase.MAIN_1, Phase.MAIN_2):
+            return
+        if affair.duel.state.normal_summon_used:
+            return
+        if None not in affair.duel.state.current_player.monster_zones:
+            return
+
+        for card in affair.duel.state.current_player.hand:
+            if not can_normal_summon(card):
+                continue
+            affair.actions.append(
+                NormalSummon(
+                    duel=affair.duel,
+                    player=affair.duel.state.current_player,
+                    card=card,
+                    requester=normal_summon_actions,
+                )
+            )

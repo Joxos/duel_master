@@ -1,3 +1,10 @@
+"""Public duel facade and composition root.
+
+This module wires the dispatcher, kernel, rule plugins, and public API surface.
+It should expose orchestration methods and leave runtime visibility logic to
+``DuelState``.
+"""
+
 from pathlib import Path
 
 from affairon import Dispatcher
@@ -14,16 +21,24 @@ from duel_core.affairs import (
     ExitPhase,
     Forbid,
     MultiAffair,
+    NormalSummon,
     TurnCleanup,
 )
 from duel_core.kernel import Kernel
-from duel_core.models import DuelState, Player, PlayerView, PublicView
+from duel_core.models import Card, DuelState, Player, PlayerView
 from duel_core.phase import Phase
 
 PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 
 class Duel:
+    """Public facade that composes the current duel slice.
+
+    Attributes:
+        dispatcher: Affair dispatcher for rule and execution flow.
+        kernel: Execution kernel that owns runtime state.
+    """
+
     def __init__(self, players: tuple[Player, Player]) -> None:
         if len(players) != 2:
             raise ValueError("Duel requires exactly two players")
@@ -61,6 +76,7 @@ class Duel:
         TurnCleanup.model_rebuild(_types_namespace={"Duel": Duel})
         Forbid.model_rebuild(_types_namespace={"Duel": Duel})
         MultiAffair.model_rebuild(_types_namespace={"Duel": Duel})
+        NormalSummon.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player, "Card": Card})
 
     @property
     def state(self) -> DuelState:
@@ -79,14 +95,7 @@ class Duel:
         self._setup_done = True
 
     def observe(self, view: Player) -> PlayerView:
-        return PlayerView(
-            viewer=view,
-            public=PublicView(
-                current_player=self.state.current_player,
-                current_turn=self.state.current_turn,
-                phase=self.state.phase,
-            ),
-        )
+        return self.state.observe(view)
 
     def available_actions(self) -> list[ExecutableAffair]:
         collector = AvailableActions(duel=self)

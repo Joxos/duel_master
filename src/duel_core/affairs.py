@@ -1,3 +1,9 @@
+"""Typed affair definitions for the current duel slice.
+
+This module defines the event and executable-affair surface used to connect the
+public facade, rules, and kernel execution seams.
+"""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -10,10 +16,16 @@ from duel_core.phase import Phase
 
 if TYPE_CHECKING:
     from duel_core.duel import Duel
-    from duel_core.models import Player
+    from duel_core.models import Card, Player
 
 
 class DuelAffair(MutableAffair):
+    """Base affair carrying duel context through the runtime graph.
+
+    Attributes:
+        duel: Duel instance that owns the current execution graph.
+    """
+
     model_config = ConfigDict(
         validate_assignment=True,
         extra="forbid",
@@ -25,19 +37,28 @@ class DuelAffair(MutableAffair):
 
 
 class ActionableDuelAffair(DuelAffair):
+    """Affair whose semantic source matters for identity checks.
+
+    Attributes:
+        requester: Callable that contributed or requested this affair.
+    """
+
     requester: Callable[..., object]
 
     def __eq__(self, other: object) -> bool:
-        if type(self) is not type(other):
-            return NotImplemented
-
         if not isinstance(other, ActionableDuelAffair):
-            return NotImplemented
+            return False
 
         return self.requester is other.requester
 
 
 class ExecutableAffair(ActionableDuelAffair):
+    """Affair that can be surfaced to the user as an executable action.
+
+    Attributes:
+        label: Optional presentation label for UI surfaces.
+    """
+
     label: str | None = None
 
 
@@ -74,13 +95,12 @@ class EnterPhase(ExecutableAffair):
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, EnterPhase):
-            return NotImplemented
+            return False
 
-        return (
-            self.requester is other.requester
-            and self.source_phase is other.source_phase
-            and self.phase is other.phase
-        )
+        requester_match = super().__eq__(other)
+        source_match = self.source_phase is other.source_phase
+        phase_match = self.phase is other.phase
+        return requester_match and source_match and phase_match
 
 
 class ExitPhase(ExecutableAffair):
@@ -97,13 +117,29 @@ class Draw(ExecutableAffair):
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Draw):
-            return NotImplemented
+            return False
 
-        return (
-            self.requester is other.requester
-            and self.player is other.player
-            and self.num == other.num
-        )
+        requester_match = super().__eq__(other)
+        player_match = self.player is other.player
+        draw_num_match = self.num == other.num
+        return requester_match and player_match and draw_num_match
+
+
+class NormalSummon(ExecutableAffair):
+    player: Player
+    card: Card
+
+    def __str__(self) -> str:
+        return f"Normal Summon {self.card.name}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NormalSummon):
+            return False
+
+        requester_match = super().__eq__(other)
+        player_match = self.player is other.player
+        card_match = self.card == other.card
+        return requester_match and player_match and card_match
 
 
 class Forbid(DuelAffair):
@@ -112,6 +148,6 @@ class Forbid(DuelAffair):
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Forbid):
-            return NotImplemented
+            return False
 
         return self.target == other.target

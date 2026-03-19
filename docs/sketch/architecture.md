@@ -46,7 +46,8 @@ Current anchor flow:
 6. if the request is not forbidden, one card is drawn
 7. available actions advance through `Standby`, `Main Phase 1`, optional `Battle`, `Main Phase 2`, and `End`
 8. first-turn battle entry is modeled by `Forbid`
-9. entering `End` triggers `TurnCleanup`, switches to the next player, and emits the next `EnterPhase(Draw)`
+9. in `Main Phase 1`, the current player may perform one minimal `NormalSummon` into an empty monster zone
+10. entering `End` triggers `TurnCleanup`, switches to the next player, and emits the next `EnterPhase(Draw)`
 
 This is the grounded flow for the current slice.
 
@@ -59,10 +60,13 @@ This is the grounded flow for the current slice.
 - `EnterPhase`
 - `ExitPhase`
 - `Draw`
+- `NormalSummon`
 - `Forbid`
 - `TurnCleanup`
 - one current actor
 - one current turn counter
+- one minimal per-player monster-zone occupancy model
+- one turn-scoped normal-summon-used flag
 - baseline turn phases:
   - `Draw`
   - `Standby`
@@ -108,8 +112,10 @@ The first implementation may begin against the following narrowed boundary:
   - `emit(affair)`
 - `available_actions()` now asks the dispatcher through a dedicated `AvailableActions` affair and only returns listener-contributed actions.
 - Current code now returns collected `ExecutableAffair` instances directly.
+- `observe(view=...)` should return view-layer data with access control. Public-facing view state must not expose the opponent's private hand or deck data by convenience.
 
 - CLI reads `Duel.observe(...)` for renderable facts.
+- Player-specific presentation data should stay on player-facing view objects rather than being flattened into `PublicView`.
 - Available user-side progression is surfaced through `available_actions()` for the current actor only.
 - User choice flows through `do(action)`.
 - Internal rule semantics still flow through emitted affairs, not direct rule branches on `Duel`.
@@ -117,6 +123,7 @@ The first implementation may begin against the following narrowed boundary:
 - Actionable in-game affairs now carry `requester`, and `Forbid` now stores the
   concrete forbidden action affair rather than only a requester callable.
 - Phase progression within a turn is currently modeled through `available_actions()` rather than a broader chance/priority system.
+- The first field state is now forced by the narrated normal summon step in `Main Phase 1`.
 
 - On user action submission, `Duel.do(...)` emits `ExecutionRequest` for the
   chosen `ExecutableAffair` into the duel-bound dispatcher.
