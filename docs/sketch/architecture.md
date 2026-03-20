@@ -177,7 +177,7 @@ current slice.
 - `Kernel` should own three responsibilities for executable affairs:
   1. resolve contradiction and priority conflicts
   2. interpret executable affairs into concrete execution steps
-  3. emit `CompletedAffair(affair: ExecutableAffair)` after execution finishes
+  3. emit `CompletedAffair(action: ExecutableAffair, result: DuelAffair)` after execution finishes
 - Once a `CompletedAffair` is emitted, newly available trigger windows return to
   the same `available_actions()` collection seam, forming a closed loop.
 - Battle-side outcomes should be expressed through concrete child affairs

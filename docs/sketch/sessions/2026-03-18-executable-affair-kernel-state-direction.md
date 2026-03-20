@@ -100,7 +100,7 @@ For the next direction, `Kernel` should own:
 
 1. contradiction and priority resolution between competing effects
 2. interpretation of executable affairs into concrete execution steps
-3. emission of `CompletedAffair(affair: ExecutableAffair)` once execution
+3. emission of `CompletedAffair(action: ExecutableAffair, result: DuelAffair)` once execution
    finishes
 
 ### Closed loop after completion

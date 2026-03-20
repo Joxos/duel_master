@@ -39,7 +39,7 @@ submitted executable affairs.
 1. runtime `State`
 2. contradiction and priority resolution
 3. interpretation of executable affairs into concrete execution steps
-4. emission of `CompletedAffair(affair: ExecutableAffair)` after execution
+4. emission of `CompletedAffair(action: ExecutableAffair, result: DuelAffair)` after execution
 
 `Duel` should expose query access over runtime state rather than keep writable
 runtime state as its own direct surface.
