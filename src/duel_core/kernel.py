@@ -16,6 +16,7 @@ from duel_core.affairs import (
     CompletedAffair,
     Draw,
     DuelAffair,
+    ExecutableAffair,
     EnterPhase,
     ExecutionRequest,
     Forbid,
@@ -41,22 +42,16 @@ class Kernel:
     """
 
     def __init__(self, state: DuelState) -> None:
-        self._ACTION_HANDLERS = {
-            Draw: self._apply_draw,
-            EnterPhase: self._apply_enter_phase,
-            NormalSummon: self._apply_normal_summon,
-            Attack: self._apply_attack,
-        }
         self.state = state
         self._forbids: list[Forbid] = []
         self.dispatcher = Dispatcher()
 
     def register(self, duel_dispatcher: Dispatcher) -> None:
         duel_dispatcher.on(ExecutionRequest)(self._execute_request)
-        for affair_type, _ in self._ACTION_HANDLERS.items():
-            duel_dispatcher.on(affair_type)(self._guarded_apply)
-        duel_dispatcher.on(SendToGraveyard)(self._apply_send_to_graveyard)
-        duel_dispatcher.on(LpVary)(self._apply_lp_vary)
+        duel_dispatcher.on(Draw)(self._execute_top_level)
+        duel_dispatcher.on(EnterPhase)(self._execute_top_level)
+        duel_dispatcher.on(NormalSummon)(self._execute_top_level)
+        duel_dispatcher.on(Attack)(self._execute_top_level)
         duel_dispatcher.on(Forbid)(self._register_forbid)
         duel_dispatcher.on(TurnCleanup)(self._cleanup_forbids)
 
@@ -67,7 +62,26 @@ class Kernel:
         )
 
     def _execute_request(self, affair: ExecutionRequest) -> None:
-        self._execute_affair(affair.duel, affair.affair)
+        self._run_top_level(affair.duel, affair.affair)
+
+    def _execute_top_level(self, affair: ExecutableAffair) -> None:
+        self._run_top_level(affair.duel, affair)
+
+    def _run_top_level(self, duel: Duel, action: ExecutableAffair) -> None:
+        if self.is_forbidden(action):
+            raise ValueError(f"Forbidden: {type(action).__name__}")
+        result = self._plan_result(action)
+        self._apply_result(duel, result)
+        duel.dispatcher.emit(CompletedAffair(duel=duel, action=action, result=result))
+
+    def _plan_result(self, affair: ExecutableAffair) -> DuelAffair:
+        match affair:
+            case Attack():
+                return self._plan_attack(affair)
+            case Draw() | EnterPhase() | NormalSummon():
+                return affair
+            case _:
+                raise ValueError(f"Unsupported executable: {type(affair).__name__}")
 
     def _apply_draw(self, affair: Draw) -> None:
         drawn = affair.player.main_deck.cards[: affair.num]
@@ -89,22 +103,31 @@ class Kernel:
         affair.card.representation = REPRESENTATION.ATTACK
         self.state.normal_summon_used = True
 
-    def _apply_attack(self, affair: Attack) -> None:
+    def _plan_attack(self, affair: Attack) -> MultiAffair:
         attacker = affair.attacker
         defender_player = self.state.opponent_of(affair.player)
         defender = affair.defender
-        if defender is None:
-            affair.duel.dispatcher.emit(
-                LpVary(duel=affair.duel, player=defender_player, delta=-attacker.card.atk)
-            )
-            return
+        children: list[DuelAffair] = []
         attacker_atk = attacker.card.atk
+        if attacker_atk is None:
+            raise ValueError("Attack requires attacker ATK")
+
+        if defender is None:
+            children.append(LpVary(duel=affair.duel, player=defender_player, delta=-attacker_atk))
+            return MultiAffair(
+                duel=affair.duel,
+                requester=self._plan_attack,
+                children=children,
+            )
+
         defender_atk = defender.card.atk
+        if defender_atk is None:
+            raise ValueError("Attack requires defender ATK")
         if attacker_atk > defender_atk:
-            affair.duel.dispatcher.emit(
+            children.append(
                 SendToGraveyard(duel=affair.duel, player=defender_player, card=defender)
             )
-            affair.duel.dispatcher.emit(
+            children.append(
                 LpVary(
                     duel=affair.duel,
                     player=defender_player,
@@ -112,10 +135,8 @@ class Kernel:
                 )
             )
         elif attacker_atk < defender_atk:
-            affair.duel.dispatcher.emit(
-                SendToGraveyard(duel=affair.duel, player=affair.player, card=attacker)
-            )
-            affair.duel.dispatcher.emit(
+            children.append(SendToGraveyard(duel=affair.duel, player=affair.player, card=attacker))
+            children.append(
                 LpVary(
                     duel=affair.duel,
                     player=affair.player,
@@ -123,12 +144,16 @@ class Kernel:
                 )
             )
         else:
-            affair.duel.dispatcher.emit(
-                SendToGraveyard(duel=affair.duel, player=affair.player, card=attacker)
-            )
-            affair.duel.dispatcher.emit(
+            children.append(SendToGraveyard(duel=affair.duel, player=affair.player, card=attacker))
+            children.append(
                 SendToGraveyard(duel=affair.duel, player=defender_player, card=defender)
             )
+
+        return MultiAffair(
+            duel=affair.duel,
+            requester=self._plan_attack,
+            children=children,
+        )
 
     def _apply_send_to_graveyard(self, affair: SendToGraveyard) -> None:
         zone_index = affair.player.monster_zones.index(affair.card)
@@ -138,21 +163,6 @@ class Kernel:
 
     def _apply_lp_vary(self, affair: LpVary) -> None:
         affair.player.life_points += affair.delta
-
-    def _guarded_apply(self, affair: ActionableDuelAffair) -> None:
-        if self.is_forbidden(affair):
-            raise ValueError(f"Forbidden: {type(affair).__name__}")
-        match affair:
-            case Draw():
-                self._apply_draw(affair)
-            case EnterPhase():
-                self._apply_enter_phase(affair)
-            case NormalSummon():
-                self._apply_normal_summon(affair)
-            case Attack():
-                self._apply_attack(affair)
-            case _:
-                raise ValueError(f"Unsupported: {type(affair).__name__}")
 
     def _register_forbid(self, affair: Forbid) -> None:
         self._forbids.append(affair)
@@ -175,31 +185,27 @@ class Kernel:
             )
         )
 
-    def _expand_multi_affair(self, affair: MultiAffair) -> None:
+    def _expand_multi_affair(self, duel: Duel, affair: MultiAffair) -> None:
         for child in affair.children:
-            self._execute_affair(affair.duel, child)
+            self._apply_result(duel, child)
 
-    def _execute_affair(self, duel: Duel, affair: DuelAffair) -> None:
+    def _apply_result(self, duel: Duel, affair: DuelAffair) -> None:
         match affair:
             case MultiAffair():
-                self._expand_multi_affair(affair)
+                self._expand_multi_affair(duel, affair)
+            case TurnCleanup():
+                duel.dispatcher.emit(affair)
+            case Draw():
+                self._apply_draw(affair)
+            case EnterPhase():
+                self._apply_enter_phase(affair)
+            case NormalSummon():
+                self._apply_normal_summon(affair)
             case SendToGraveyard():
                 self._apply_send_to_graveyard(affair)
             case LpVary():
                 self._apply_lp_vary(affair)
             case Forbid():
                 self._register_forbid(affair)
-            case Draw():
-                self._guarded_apply(affair)
-                duel.dispatcher.emit(CompletedAffair(duel=duel, affair=affair))
-            case EnterPhase():
-                self._guarded_apply(affair)
-                duel.dispatcher.emit(CompletedAffair(duel=duel, affair=affair))
-            case NormalSummon():
-                self._guarded_apply(affair)
-                duel.dispatcher.emit(CompletedAffair(duel=duel, affair=affair))
-            case Attack():
-                self._guarded_apply(affair)
-                duel.dispatcher.emit(CompletedAffair(duel=duel, affair=affair))
             case _:
-                raise ValueError(f"Unsupported: {type(affair).__name__}")
+                raise ValueError(f"Unsupported result: {type(affair).__name__}")

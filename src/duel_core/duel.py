@@ -15,12 +15,14 @@ from duel_core.affairs import (
     AvailableActions,
     CompletedAffair,
     Draw,
+    DuelAffair,
     DuelInit,
     ExecutableAffair,
     EnterPhase,
     ExecutionRequest,
     ExitPhase,
     Forbid,
+    LpVary,
     MultiAffair,
     NormalSummon,
     SendToGraveyard,
@@ -65,7 +67,11 @@ class Duel:
             _types_namespace={"Duel": Duel, "ExecutableAffair": ExecutableAffair}
         )
         CompletedAffair.model_rebuild(
-            _types_namespace={"Duel": Duel, "ExecutableAffair": ExecutableAffair}
+            _types_namespace={
+                "Duel": Duel,
+                "DuelAffair": DuelAffair,
+                "ExecutableAffair": ExecutableAffair,
+            }
         )
         Draw.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player})
         DuelInit.model_rebuild(_types_namespace={"Duel": Duel})
@@ -92,6 +98,12 @@ class Duel:
                 "Player": Player,
                 "Card": Card,
                 "RuntimeCard": RuntimeCard,
+            }
+        )
+        LpVary.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
             }
         )
         SendToGraveyard.model_rebuild(

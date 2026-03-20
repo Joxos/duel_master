@@ -74,10 +74,11 @@ class ExecutionRequest(DuelAffair):
 
 
 class CompletedAffair(DuelAffair):
-    affair: ExecutableAffair
+    action: ExecutableAffair
+    result: DuelAffair
 
 
-class MultiAffair(ExecutableAffair):
+class MultiAffair(ActionableDuelAffair):
     children: list[DuelAffair] = Field(default_factory=list)
 
 
