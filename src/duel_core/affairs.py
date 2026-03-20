@@ -16,7 +16,7 @@ from duel_core.phase import Phase
 
 if TYPE_CHECKING:
     from duel_core.duel import Duel
-    from duel_core.models import Card, Player
+    from duel_core.models import Player, RuntimeCard
 
 
 class DuelAffair(MutableAffair):
@@ -48,7 +48,6 @@ class ActionableDuelAffair(DuelAffair):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, ActionableDuelAffair):
             return False
-
         return self.requester is other.requester
 
 
@@ -127,19 +126,46 @@ class Draw(ExecutableAffair):
 
 class NormalSummon(ExecutableAffair):
     player: Player
-    card: Card
+    card: RuntimeCard
 
     def __str__(self) -> str:
-        return f"Normal Summon {self.card.name}"
+        return f"Normal Summon {self.card.card.name}"
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, NormalSummon):
             return False
+        return super().__eq__(other) and self.player is other.player and self.card == other.card
 
-        requester_match = super().__eq__(other)
-        player_match = self.player is other.player
-        card_match = self.card == other.card
-        return requester_match and player_match and card_match
+
+class Attack(ExecutableAffair):
+    player: Player
+    attacker: RuntimeCard
+    defender: RuntimeCard | None = None
+
+    def __str__(self) -> str:
+        if self.defender is None:
+            return f"Direct Attack with {self.attacker.card.name}"
+        return f"Attack with {self.attacker.card.name}"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Attack):
+            return False
+        return (
+            super().__eq__(other)
+            and self.player is other.player
+            and self.attacker == other.attacker
+            and self.defender == other.defender
+        )
+
+
+class SendToGraveyard(DuelAffair):
+    player: Player
+    card: RuntimeCard
+
+
+class LpVary(DuelAffair):
+    player: Player
+    delta: int
 
 
 class Forbid(DuelAffair):
@@ -149,5 +175,4 @@ class Forbid(DuelAffair):
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Forbid):
             return False
-
         return self.target == other.target

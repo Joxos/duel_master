@@ -4,28 +4,21 @@ This module holds runtime data shapes, player-facing view shapes, and the
 state-owned observe boundary. Rule semantics stay outside these models.
 """
 
-from collections.abc import Callable
-from typing import ClassVar
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from duel_core.phase import Phase
 
 
-class Card(BaseModel):
-    """Printed runtime facts for a single card instance.
+class REPRESENTATION(Enum):
+    VOID = "void"
+    ATTACK = "attack"
+    DEFENSE = "defense"
 
-    Attributes:
-        id: Canonical card identifier.
-        name: Printed card name.
-        type: Printed card type line.
-        desc: Printed rules text.
-        atk: Printed attack value when present.
-        def_: Printed defense value when present.
-        level: Printed level when present.
-        race: Printed monster race when present.
-        attribute: Printed attribute when present.
-    """
+
+class Card(BaseModel):
+    """Printed runtime facts for a single card instance."""
 
     model_config = ConfigDict(frozen=True)
 
@@ -40,69 +33,49 @@ class Card(BaseModel):
     attribute: str | None = None
 
 
-class Deck(BaseModel):
-    """A draw-capable ordered deck for the current slice.
+class RuntimeCard(BaseModel):
+    card: Card
+    representation: REPRESENTATION = REPRESENTATION.VOID
 
-    Attributes:
-        cards: Remaining cards in draw order.
-    """
+
+class Deck(BaseModel):
+    """A draw-capable ordered deck for the current slice."""
 
     model_config = ConfigDict(validate_assignment=True)
 
     cards: list[Card]
 
-    def draw(self, num: int = 1) -> list[Card]:
-        if num < 0:
-            raise ValueError(f"draw count must be non-negative: {num}")
-        if num > len(self.cards):
-            raise ValueError(f"cannot draw {num} cards from deck of size {len(self.cards)}")
-
-        drawn = self.cards[:num]
-        del self.cards[:num]
-        return drawn
-
 
 class Player(BaseModel):
-    """Runtime state owned by one duel participant.
-
-    Attributes:
-        label: Presentation label for the player.
-        main_deck: Draw-capable main deck.
-        extra_deck: Extra-deck contents kept separate from draw behavior.
-        hand: Private cards currently in hand.
-        monster_zones: This player's monster-zone occupancy.
-    """
+    """Runtime state owned by one duel participant."""
 
     model_config = ConfigDict(validate_assignment=True)
 
     label: str
     main_deck: Deck
     extra_deck: list[Card]
-    hand: list[Card] = Field(default_factory=list)
-    monster_zones: list[Card | None] = Field(default_factory=lambda: [None])
+    hand: list[RuntimeCard] = Field(default_factory=list)
+    monster_zones: list[RuntimeCard | None] = Field(default_factory=lambda: [None])
+    graveyard: list[RuntimeCard] = Field(default_factory=list)
+    life_points: int = 8000
 
 
 class DuelState(BaseModel):
-    """Kernel-owned runtime state and observe composition boundary.
-
-    Attributes:
-        players: The two duel participants.
-        current_player: The player whose turn it currently is.
-        current_turn: One-based turn counter.
-        phase: Current turn phase.
-        normal_summon_used: Whether the current player has used a normal summon.
-    """
+    """Kernel-owned runtime state and observe composition boundary."""
 
     model_config = ConfigDict(validate_assignment=True)
 
-    _VISIBLE_PLAYER_FIELDS: ClassVar[tuple[tuple[str, Callable[[Player], object]], ...]] = (
+    _VISIBLE_PLAYER_FIELDS = (
         ("label", lambda player: player.label),
         ("monster_zones", lambda player: tuple(player.monster_zones)),
+        ("graveyard_size", lambda player: len(player.graveyard)),
+        ("life_points", lambda player: player.life_points),
     )
-    _PUBLIC_VIEW_FIELDS: ClassVar[tuple[tuple[str, Callable[["DuelState"], object]], ...]] = (
+    _PUBLIC_VIEW_FIELDS = (
         ("current_turn", lambda state: state.current_turn),
         ("phase", lambda state: state.phase),
         ("normal_summon_used", lambda state: state.normal_summon_used),
+        ("battle_entered", lambda state: state.phase is Phase.BATTLE),
     )
 
     players: tuple[Player, Player]
@@ -142,44 +115,29 @@ class DuelState(BaseModel):
 
 
 class PublicView(BaseModel):
-    """Public duel facts visible regardless of player perspective.
-
-    Attributes:
-        current_turn: One-based turn counter.
-        phase: Current turn phase.
-        normal_summon_used: Whether the turn's normal summon has been used.
-    """
+    """Public duel facts visible regardless of player perspective."""
 
     model_config = ConfigDict(frozen=True)
 
     current_turn: int
     phase: Phase
     normal_summon_used: bool
+    battle_entered: bool
 
 
 class VisiblePlayer(BaseModel):
-    """Player-facing visible information for one side of the field.
-
-    Attributes:
-        label: Player label visible in the current view.
-        monster_zones: Visible monster-zone occupancy for that side.
-    """
+    """Player-facing visible information for one side of the field."""
 
     model_config = ConfigDict(frozen=True)
 
     label: str
-    monster_zones: tuple[Card | None, ...]
+    monster_zones: tuple[RuntimeCard | None, ...]
+    graveyard_size: int
+    life_points: int
 
 
 class PlayerView(BaseModel):
-    """Access-controlled player-facing view of the duel state.
-
-    Attributes:
-        viewer: The observing player's visible side.
-        opponent: The opposing visible side.
-        current_player: The side whose turn it currently is.
-        public: Public duel facts shared across all perspectives.
-    """
+    """Access-controlled player-facing view of the duel state."""
 
     model_config = ConfigDict(frozen=True)
 

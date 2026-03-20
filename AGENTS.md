@@ -1,176 +1,153 @@
 # AGENTS.md
 
-This file is for coding agents working in `/home/Joxos/source/duel_master`.
-Use it as repository-specific guidance, not as generic Python advice.
+This file is the English working guide for coding agents in `/home/Joxos/source/duel_master`.
+The lowercase `agents.md` contains supplementary local rules in Chinese.
 
 ## Scope
 
-- This repo is Python, not JS/TS.
-- Python baseline is 3.12+.
-- The code uses a `src/` layout.
-- The active development branch is `dev`.
-- `duel_core` is the active engine slice.
-- `duel_master` currently exposes the CLI entry point.
+- Python 3.12+, `src/` layout
+- Active branch: `dev`
+- Active engine slice: `duel_core`; CLI entry point: `duel_master`
 
 ## Read these first
 
-Before changing code, read these files in order:
-
 1. `README.md`
-2. `agents.md`
+2. `agents.md` (local rules)
 3. `pyproject.toml`
 4. `docs/sketch/architecture.md`
 5. Relevant files in `docs/sketch/decisions/`
-6. Relevant recent files in `docs/sketch/sessions/`
-
-The lowercase `agents.md` is an authoritative local rules file.
-This `AGENTS.md` is the English working guide for agentic coding in this repo.
-
-## Editor-specific instruction files
-
-At the time of writing, this repo has no `.cursorrules`, no `.cursor/rules/`,
-and no `.github/copilot-instructions.md`.
+6. Recent files in `docs/sketch/sessions/`
 
 ## Repository layout
 
-- `src/duel_core/`: duel engine, affairs, kernel, models, phase logic, rules slice
-- `src/duel_master/`: CLI package and entry point
-- `tests/`: pytest suite
-- `examples/`: executable examples and helper scripts
-- `docs/sketch/architecture.md`: current architecture draft
-- `docs/sketch/decisions/`: durable decisions
-- `docs/sketch/sessions/`: session notes
+| Path | Purpose |
+|---|---|
+| `src/duel_core/` | Duel engine: affairs, kernel, models, phase logic, rules |
+| `src/duel_master/` | CLI package and entry point |
+| `tests/` | Pytest suite (currently sparse) |
+| `examples/` | Executable example scripts |
+| `docs/sketch/architecture.md` | Current working architecture draft |
+| `docs/sketch/decisions/` | Settled decisions with rationale |
+| `docs/sketch/sessions/` | Session-by-session notes |
 
 ## Verified commands
 
-Use `uv run ...` for development tools.
+Use `uv run ...` for all development tools.
 
 ### Tests
 
-- Full suite: `uv run pytest tests`
-- Single test file: `uv run pytest tests/test_smoke.py`
-- Single test by name: `uv run pytest tests/test_smoke.py -k test_main_returns_zero`
-- Another focused example: `uv run pytest tests/duel_core/test_opening_draw_flow.py`
-- Focused by name: `uv run pytest tests/duel_core/test_opening_draw_flow.py -k test_unknown_user_action_is_rejected`
+```bash
+# Full suite
+uv run pytest tests
+
+# Single test file
+uv run pytest tests/test_smoke.py
+
+# Single test by name
+uv run pytest tests/test_smoke.py -k test_main_returns_zero
+
+# Focused example
+uv run pytest tests/duel_core/test_opening_draw_flow.py -k test_unknown_user_action_is_rejected
+```
 
 ### Lint / type check / build
 
-- `uv run ruff check src tests`
-- `uv run basedpyright src tests`
-- `uv build`
+```bash
+uv run ruff check src tests
+uv run basedpyright src tests
+uv build
+```
 
-## Tooling facts from config
+## Tooling facts
 
-- Ruff line length: `100`
-- Ruff target version: `py312`
-- BasedPyright type checking mode: `basic`
+- Ruff: line-length 100, target py312
+- BasedPyright: typeCheckingMode "basic"
 - Pytest test root: `tests`
 - CLI entry point: `duel-master = duel_master.cli:main`
-- Affairon plugin setup comes from `[tool.affairon]`
+- Affairon plugin: `duel_core.mr2020:setup` (from `[tool.affairon]`)
 
-## Working style for this branch
+## Architecture rules
 
-This branch is intentionally small and architecture-first.
+These come from `docs/sketch/architecture.md`:
 
-- Rebuild from first principles through small executable slices.
-- Prefer the smallest concrete change that proves the next step.
-- Unsupported areas should fail fast for now.
-- Do not add speculative abstractions before duel progression forces them.
-- Validate direction with smoke-sized behavior, not speculative large builds.
+- Runtime seams: typed `affairon` affairs
+- Kernel owns runtime `State`; `Duel` exposes query access via `Duel.state`
+- Public API: `observe(view=...)`, `available_actions()`, `do(action)`, `emit(affair)`
+- `available_actions()` is listener-driven; returns collected `ExecutableAffair` values
+- `Duel.do(...)` accepts an `ExecutableAffair` and emits `ExecutionRequest`
+- `Kernel` emits `CompletedAffair` after execution
+- Prefer listener-driven behavior in `mr2020.py` and `kernel.py` over direct `Duel` branches
+- Actionable affairs carry `requester` when semantic origin matters
 
-## Architecture rules that matter
+## Working style
 
-These rules come from `docs/sketch/architecture.md` and recent decisions:
-
-- Runtime seams should be expressed through typed `affairon` affairs.
-- Kernel-like execution code must not own authored card semantics.
-- New representations must be forced by an explicit duel progression step.
-- Public usage is centered on `observe(view=...)`, `available_actions()`, `do(action)`, and `emit(affair)`.
-- `available_actions()` is listener-driven and returns collected `ExecutableAffair` values.
-- `Duel.do(...)` accepts an `ExecutableAffair` and submits execution through the dispatcher.
-- `Kernel` owns runtime `State`; `Duel` exposes query access through `Duel.state`.
-- Actionable affairs carry `requester` when semantic origin matters.
-
-Prefer extending listener-driven behavior in `mr2020.py` and `kernel.py` before
-adding direct logic branches to `Duel`.
-
-## Discussion persistence is mandatory
-
-Architecture discussion is part of the work.
-
-- Update `docs/sketch/architecture.md` when the working draft changes.
-- Add a session note under `docs/sketch/sessions/` for each discussion.
-- Record settled outcomes under `docs/sketch/decisions/`.
-- Align implementation with those records before extending the slice.
-
-If the design changed and the docs did not, the work is incomplete.
+- Rebuild from first principles through small executable slices
+- Prefer the smallest concrete change that proves the next step
+- Unsupported areas fail fast; no speculative abstractions
+- Validate with smoke-sized behavior, not large speculative builds
+- Discussion persistence is mandatory: update `docs/sketch/` after architecture changes
 
 ## Code style
 
 ### Imports and formatting
 
-- Prefer absolute imports from `duel_core` and `duel_master`.
-- Separate import groups with a blank line when groups differ.
-- Keep imports explicit. Do not use wildcard imports.
-- Use `typing` imports sparingly.
-- Match the surrounding file's formatting instead of reflowing unrelated code.
-- Keep code within Ruff's configured line length of 100.
+- Prefer absolute imports from `duel_core` and `duel_master`
+- Separate import groups with a blank line when groups differ
+- Keep imports explicit; no wildcard imports
+- Use `typing` imports sparingly
+- Keep code within Ruff's line length of 100
 
-### Typing and models
+### Typing
 
-- Use modern Python 3.12 typing syntax.
-- Prefer built-in generics such as `list[str]` and `tuple[Player, Player]`.
-- Prefer `X | None` over `typing.Optional[X]`.
-- Type new functions, helpers, and pytest fixtures.
-- State models are Pydantic models; follow the current `BaseModel` + `ConfigDict` pattern.
-- Use `Field(default_factory=...)` for mutable defaults.
-- Keep runtime data on `Kernel` state, not ad hoc fields on `Duel`.
+- Use modern Python 3.12 syntax: `list[str]`, `tuple[Player, Player]`
+- Prefer `X | None` over `typing.Optional[X]`
+- Type all new functions, helpers, and pytest fixtures
+- State models: `BaseModel` + `ConfigDict` pattern with `Field(default_factory=...)`
+- Keep runtime data on `Kernel` state, not ad hoc fields on `Duel`
 
-### Naming, comments, and docstrings
+### Naming
 
-- Modules, variables, functions, and tests use `snake_case`.
-- Classes use `PascalCase`.
-- Constants use `UPPER_SNAKE_CASE`.
-- Test files use `test_*.py`, and test names should describe behavior directly.
-- Full-sentence comments go on their own line and start with a capital letter.
-- Incomplete fragments belong in end-of-line comments and start lowercase.
-- Module docstrings are optional at this MVP stage.
-- Class and function docstrings should use Google style when they add value.
-- Do not write docstrings that only restate the name.
+- Modules, variables, functions, tests: `snake_case`
+- Classes: `PascalCase`
+- Constants: `UPPER_SNAKE_CASE`
+- Test files: `test_*.py`
+
+### Comments and docstrings
+
+- Full-sentence comments on their own line, capitalized
+- Incomplete fragments: end-of-line comments, lowercase
+- Module docstrings optional at MVP stage
+- Class/function docstrings: Google style when they add value
+- Do not write docstrings that only restate the name
 
 ### Error handling
 
-- Fail fast on invalid domain input.
-- Raise clear exceptions, as current code already does with `ValueError`.
-- Do not add silent fallbacks.
-- Do not add defensive layers for unsupported behavior unless architecture notes now require them.
+- Fail fast on invalid domain input
+- Raise clear exceptions (e.g., `ValueError`)
+- No silent fallbacks or defensive layers for unsupported behavior
 
 ## Tests and examples
 
-- Keep tests under `tests/`, usually mirroring the affected area under `src/`.
-- Use plain pytest function tests.
-- Type pytest fixtures when they appear in signatures.
-- Match the existing style of small builder helpers in test support code.
-- Keep `examples/` executable.
-- Examples should remain callable from smoke-style tests when practical.
+- Tests under `tests/`, mirroring the affected area under `src/`
+- Plain pytest function tests; type fixtures in signatures
+- Keep `examples/` executable and callable from smoke tests
+- Current test coverage is minimal; expand as slice grows
 
-## Practical repo-specific patterns
+## Practical patterns
 
-- `Duel` currently expects exactly two `Player` objects.
-- The public flow is concrete and inspectable, not hidden behind a large wrapper.
-- `AvailableActions` is a collector affair; add actions through listeners.
-- Phase progression is currently modeled through `available_actions()` rather than a larger timing system.
-- Keep CLI behavior aligned with `observe(...)` output and available actions.
-- Blue-Eyes White Dragon exists as reference/runtime card data, but tribute-summon behavior is still out of scope for the current slice.
+- `Duel` expects exactly two `Player` objects
+- `AvailableActions` is a collector affair; add actions through listeners
+- Phase progression through `available_actions()`, not a larger timing system
+- Blue-Eyes White Dragon exists as reference data; tribute-summon out of scope
 
 ## Before you finish
 
-Run the smallest relevant check first, then broaden only as needed:
+Run checks in order, broadening only as needed:
 
-1. Targeted pytest command for the touched file or specific test name
-2. `uv run pytest tests` when shared behavior changed
+1. Targeted pytest for the touched file or specific test name
+2. `uv run pytest tests` if shared behavior changed
 3. `uv run ruff check src tests`
 4. `uv run basedpyright src tests`
-5. `uv build` when packaging or entry points changed
+5. `uv build` if packaging or entry points changed
 
 If your change alters architecture, also update the matching files under `docs/sketch/`.

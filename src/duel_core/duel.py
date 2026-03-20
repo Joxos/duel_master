@@ -11,6 +11,7 @@ from affairon import Dispatcher
 from affairon.composer import PluginComposer
 
 from duel_core.affairs import (
+    Attack,
     AvailableActions,
     CompletedAffair,
     Draw,
@@ -22,10 +23,11 @@ from duel_core.affairs import (
     Forbid,
     MultiAffair,
     NormalSummon,
+    SendToGraveyard,
     TurnCleanup,
 )
 from duel_core.kernel import Kernel
-from duel_core.models import Card, DuelState, Player, PlayerView
+from duel_core.models import Card, DuelState, Player, PlayerView, RuntimeCard
 from duel_core.phase import Phase
 
 PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
@@ -76,7 +78,30 @@ class Duel:
         TurnCleanup.model_rebuild(_types_namespace={"Duel": Duel})
         Forbid.model_rebuild(_types_namespace={"Duel": Duel})
         MultiAffair.model_rebuild(_types_namespace={"Duel": Duel})
-        NormalSummon.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player, "Card": Card})
+        NormalSummon.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
+                "Card": Card,
+                "RuntimeCard": RuntimeCard,
+            }
+        )
+        Attack.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
+                "Card": Card,
+                "RuntimeCard": RuntimeCard,
+            }
+        )
+        SendToGraveyard.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
+                "Card": Card,
+                "RuntimeCard": RuntimeCard,
+            }
+        )
 
     @property
     def state(self) -> DuelState:

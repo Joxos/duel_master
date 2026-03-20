@@ -1,5 +1,6 @@
 from affairon import Dispatcher
 from duel_core.affairs import (
+    Attack,
     AvailableActions,
     Draw,
     DuelInit,
@@ -8,7 +9,7 @@ from duel_core.affairs import (
     NormalSummon,
     TurnCleanup,
 )
-from duel_core.models import Card
+from duel_core.models import RuntimeCard, REPRESENTATION
 from duel_core.phase import Phase
 
 TURN_DRAW_NUM = 1
@@ -23,8 +24,8 @@ PHASE_GRAPH: dict[Phase, tuple[Phase, ...]] = {
 }
 
 
-def can_normal_summon(card: Card) -> bool:
-    return card.level is not None and card.level <= 4
+def can_normal_summon(card: RuntimeCard) -> bool:
+    return card.card.level is not None and card.card.level <= 4
 
 
 def setup(dispatcher: Dispatcher) -> None:
@@ -32,7 +33,6 @@ def setup(dispatcher: Dispatcher) -> None:
     def turn_draw(affair: EnterPhase) -> None:
         if affair.phase is not Phase.DRAW:
             return
-
         affair.duel.emit(
             Draw(
                 duel=affair.duel,
@@ -99,10 +99,8 @@ def setup(dispatcher: Dispatcher) -> None:
                 source_phase=affair.duel.state.phase,
                 requester=phase_actions,
             )
-
             if affair.duel.kernel.is_forbidden(action):
                 continue
-
             affair.actions.append(action)
 
     @dispatcher.on(AvailableActions)
@@ -113,7 +111,6 @@ def setup(dispatcher: Dispatcher) -> None:
             return
         if None not in affair.duel.state.current_player.monster_zones:
             return
-
         for card in affair.duel.state.current_player.hand:
             if not can_normal_summon(card):
                 continue
@@ -125,3 +122,37 @@ def setup(dispatcher: Dispatcher) -> None:
                     requester=normal_summon_actions,
                 )
             )
+
+    @dispatcher.on(AvailableActions)
+    def battle_actions(affair: AvailableActions) -> None:
+        if affair.duel.state.phase is not Phase.BATTLE:
+            return
+        attacker = affair.duel.state.current_player
+        defender = affair.duel.state.opponent
+        for attacker_card in attacker.monster_zones:
+            if attacker_card is None:
+                continue
+            if attacker_card.representation is not REPRESENTATION.ATTACK:
+                continue
+            if all(d is None for d in defender.monster_zones):
+                affair.actions.append(
+                    Attack(
+                        duel=affair.duel,
+                        player=attacker,
+                        attacker=attacker_card,
+                        requester=battle_actions,
+                    )
+                )
+                continue
+            for defender_card in defender.monster_zones:
+                if defender_card is None:
+                    continue
+                affair.actions.append(
+                    Attack(
+                        duel=affair.duel,
+                        player=attacker,
+                        attacker=attacker_card,
+                        defender=defender_card,
+                        requester=battle_actions,
+                    )
+                )

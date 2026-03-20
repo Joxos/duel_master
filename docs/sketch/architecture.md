@@ -48,6 +48,8 @@ Current anchor flow:
 8. first-turn battle entry is modeled by `Forbid`
 9. in `Main Phase 1`, the current player may perform one minimal `NormalSummon` into an empty monster zone
 10. entering `End` triggers `TurnCleanup`, switches to the next player, and emits the next `EnterPhase(Draw)`
+11. on turn 2, a summoned monster may enter `Battle` and attack one opposing monster
+12. battle resolution destroys losing monsters, updates LP, records a minimal completion result, and returns to the same action loop
 
 This is the grounded flow for the current slice.
 
@@ -61,12 +63,16 @@ This is the grounded flow for the current slice.
 - `ExitPhase`
 - `Draw`
 - `NormalSummon`
+- `Attack`
 - `Forbid`
 - `TurnCleanup`
 - one current actor
 - one current turn counter
 - one minimal per-player monster-zone occupancy model
 - one turn-scoped normal-summon-used flag
+- one minimal per-player graveyard
+- one minimal per-player LP total
+- one turn-scoped attacked-zone tracker
 - baseline turn phases:
   - `Draw`
   - `Standby`
@@ -174,6 +180,9 @@ current slice.
   3. emit `CompletedAffair(affair: ExecutableAffair)` after execution finishes
 - Once a `CompletedAffair` is emitted, newly available trigger windows return to
   the same `available_actions()` collection seam, forming a closed loop.
+- Battle-side outcomes should be expressed through concrete child affairs
+  (for example card movement and LP variation), not by ad-hoc payload fields
+  attached to `CompletedAffair`.
 - `Forbid` should target a concrete actionable affair instance, with affair
   equality responsible for distinguishing rule-relevant identity such as
   requester and transition edge.
@@ -193,11 +202,9 @@ current slice.
   - richer effect IR beyond direct `Draw`
   - the exact request-affair name used by `Duel.do(...)` to submit an
     `ExecutableAffair` into the dispatcher
-  - the exact payload carried by `CompletedAffair` beyond the executed
-    `ExecutableAffair`
-  - broader action availability semantics beyond one current actor
-  - generalized phase graph beyond `DRAW` and `END`
-  - the first field-related state forced by an executable smoke path
+- richer effect IR beyond direct `Draw`
+- broader action availability semantics beyond one current actor
+- generalized phase graph beyond `DRAW` and `END`
 
 ### Superseded notes
 
@@ -211,7 +218,7 @@ current slice.
 1. What is the first narrated executable path that forces `ExecutableAffair`
    beyond the current action wrapper?
 2. What is the smallest trigger-window case that forces the first practical
-   `CompletedAffair` payload?
+   result-affair flow under one executable action?
 3. Which exact duel step first forces concrete field state into `State`?
 
 ## Next implementation proposal

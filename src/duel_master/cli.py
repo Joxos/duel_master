@@ -6,9 +6,9 @@ manual smoke testing of the current architecture-first slice.
 
 from cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
 from duel_core import Card, Deck, Duel, Player
-from duel_core.models import Card as DuelCard, PlayerView, VisiblePlayer
-from rich.console import Console
+from duel_core.models import RuntimeCard, PlayerView, VisiblePlayer
 from rich.columns import Columns
+from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
@@ -65,10 +65,10 @@ def build_demo_duel() -> Duel:
     )
 
 
-def _format_zone_card(card: DuelCard | None) -> str:
+def _format_zone_card(card: RuntimeCard | None) -> str:
     if card is None:
         return "(empty)"
-    return card.name
+    return card.card.name
 
 
 def _build_player_panel(player: VisiblePlayer, *, border_style: str) -> Panel:
@@ -77,6 +77,8 @@ def _build_player_panel(player: VisiblePlayer, *, border_style: str) -> Panel:
     zone_table.add_column("Monster Zone")
     for index, card in enumerate(player.monster_zones, start=1):
         zone_table.add_row(str(index), _format_zone_card(card))
+    zone_table.add_row("GY", str(player.graveyard_size))
+    zone_table.add_row("LP", str(player.life_points))
     return Panel(zone_table, title=player.label, border_style=border_style)
 
 
@@ -88,6 +90,7 @@ def _build_status_panel(view: PlayerView) -> Panel:
             f"Opponent: {view.opponent.label}",
             f"Turn: {view.public.current_turn}",
             f"Phase: {view.public.phase.value}",
+            f"Battle entered: {'Yes' if view.public.battle_entered else 'No'}",
             f"Normal summon used: {'Yes' if view.public.normal_summon_used else 'No'}",
         ]
     )
