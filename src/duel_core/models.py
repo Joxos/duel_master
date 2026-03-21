@@ -45,6 +45,11 @@ class Deck(BaseModel):
 
     cards: list[Card]
 
+    def draw(self, num: int) -> list[Card]:
+        drawn = self.cards[:num]
+        del self.cards[:num]
+        return drawn
+
 
 class Player(BaseModel):
     """Runtime state owned by one duel participant."""
