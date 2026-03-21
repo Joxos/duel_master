@@ -69,13 +69,22 @@ class AvailableActions(DuelAffair):
     actions: list[ExecutableAffair] = Field(default_factory=list)
 
 
-class ExecutionRequest(DuelAffair):
-    affair: ExecutableAffair
-
-
 class CompletedAffair(DuelAffair):
-    action: ExecutableAffair
-    result: DuelAffair
+    affair: DuelAffair
+
+
+def completed_affair_of(*affair_types: type[DuelAffair]) -> Callable[[CompletedAffair], bool]:
+    def _matches(completed: CompletedAffair) -> bool:
+        return isinstance(completed.affair, affair_types)
+
+    return _matches
+
+
+def completed_enter_phase(phase: Phase) -> Callable[[CompletedAffair], bool]:
+    def _matches(completed: CompletedAffair) -> bool:
+        return isinstance(completed.affair, EnterPhase) and completed.affair.phase is phase
+
+    return _matches
 
 
 class MultiAffair(ActionableDuelAffair):

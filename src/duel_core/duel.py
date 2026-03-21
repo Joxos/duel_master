@@ -19,7 +19,6 @@ from duel_core.affairs import (
     DuelInit,
     ExecutableAffair,
     EnterPhase,
-    ExecutionRequest,
     ExitPhase,
     Forbid,
     LpVary,
@@ -51,14 +50,14 @@ class Duel:
         self._setup_done = False
         self.dispatcher = Dispatcher()
         self.kernel = Kernel(
-            DuelState(
+            state=DuelState(
                 players=players,
                 current_player=players[0],
                 current_turn=1,
                 phase=Phase.DRAW,
-            )
+            ),
+            duel_dispatcher=self.dispatcher,
         )
-        self.kernel.register(self.dispatcher)
         self.setup()
 
     @staticmethod
@@ -70,16 +69,12 @@ class Duel:
             _types_namespace={
                 "Duel": Duel,
                 "DuelAffair": DuelAffair,
-                "ExecutableAffair": ExecutableAffair,
             }
         )
         Draw.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player})
         DuelInit.model_rebuild(_types_namespace={"Duel": Duel})
         ExecutableAffair.model_rebuild(_types_namespace={"Duel": Duel})
         EnterPhase.model_rebuild(_types_namespace={"Duel": Duel})
-        ExecutionRequest.model_rebuild(
-            _types_namespace={"Duel": Duel, "ExecutableAffair": ExecutableAffair}
-        )
         ExitPhase.model_rebuild(_types_namespace={"Duel": Duel})
         TurnCleanup.model_rebuild(_types_namespace={"Duel": Duel})
         Forbid.model_rebuild(_types_namespace={"Duel": Duel})
@@ -119,16 +114,13 @@ class Duel:
     def state(self) -> DuelState:
         return self.kernel.state
 
-    def emit(self, affair) -> None:
-        self.dispatcher.emit(affair)
-
     def setup(self) -> None:
         if self._setup_done:
             raise ValueError("Duel setup already completed")
 
         composer = PluginComposer(self.dispatcher)
         composer.compose_from_pyproject(PYPROJECT_PATH)
-        self.emit(DuelInit(duel=self))
+        self.dispatcher.emit(DuelInit(duel=self))
         self._setup_done = True
 
     def observe(self, view: Player) -> PlayerView:
@@ -136,10 +128,8 @@ class Duel:
 
     def available_actions(self) -> list[ExecutableAffair]:
         collector = AvailableActions(duel=self)
-        self.emit(collector)
+        self.dispatcher.emit(collector)
         return collector.actions
 
     def do(self, action: ExecutableAffair) -> None:
-        if action not in self.available_actions():
-            raise ValueError("Unknown action")
-        self.emit(ExecutionRequest(duel=self, affair=action))
+        self.kernel.do(action)
