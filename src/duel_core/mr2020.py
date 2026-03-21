@@ -2,12 +2,14 @@ from affairon.listen import listen
 from duel_core.affairs import (
     Attack,
     AvailableActions,
+    CompletedAffair,
     Draw,
     DuelInit,
     EnterPhase,
     Forbid,
     NormalSummon,
     TurnCleanup,
+    completed_enter_phase,
 )
 from duel_core.models import RuntimeCard, REPRESENTATION
 from duel_core.phase import Phase
@@ -28,11 +30,11 @@ def can_normal_summon(card: RuntimeCard) -> bool:
     return card.card.level is not None and card.card.level <= 4
 
 
-@listen(EnterPhase)
-def turn_draw(affair: EnterPhase) -> None:
-    if affair.phase is not Phase.DRAW:
-        return
-    affair.duel.emit(
+@listen(CompletedAffair, when=completed_enter_phase(Phase.DRAW))
+def turn_draw(completed: CompletedAffair) -> None:
+    affair = completed.affair
+    assert isinstance(affair, EnterPhase)
+    affair.duel.do(
         Draw(
             duel=affair.duel,
             player=affair.duel.state.current_player,
@@ -45,7 +47,7 @@ def turn_draw(affair: EnterPhase) -> None:
 @listen(DuelInit)
 def initial_draw(affair: DuelInit) -> None:
     for player in affair.duel.state.players:
-        affair.duel.emit(
+        affair.duel.do(
             Draw(
                 duel=affair.duel,
                 player=player,
@@ -63,7 +65,7 @@ def forbid_initial_turn_draw(affair: DuelInit) -> None:
         num=TURN_DRAW_NUM,
         requester=turn_draw,
     )
-    affair.duel.emit(
+    affair.duel.dispatcher.emit(
         Forbid(
             duel=affair.duel,
             target=draw_action,
@@ -80,7 +82,7 @@ def forbid_first_turn_battle(affair: DuelInit) -> None:
         source_phase=Phase.MAIN_1,
         requester=phase_actions,
     )
-    affair.duel.emit(
+    affair.duel.dispatcher.emit(
         Forbid(
             duel=affair.duel,
             target=battle_action,

@@ -72,9 +72,9 @@ These come from `docs/sketch/architecture.md`:
 
 - Runtime seams: typed `affairon` affairs
 - Kernel owns runtime `State`; `Duel` exposes query access via `Duel.state`
-- Public API: `observe(view=...)`, `available_actions()`, `do(action)`, `emit(affair)`
+- Public API: `observe(view=...)`, `available_actions()`, `do(action)`
 - `available_actions()` is listener-driven; returns collected `ExecutableAffair` values
-- `Duel.do(...)` accepts an `ExecutableAffair` and emits `ExecutionRequest`
+- `Duel.do(...)` accepts an `ExecutableAffair` and submits it to `Kernel.do(...)`
 - `Kernel` emits `CompletedAffair` after execution
 - Prefer listener-driven behavior in `mr2020.py` and `kernel.py` over direct `Duel` branches
 - Actionable affairs carry `requester` when semantic origin matters

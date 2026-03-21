@@ -1,4 +1,4 @@
-from duel_core.affairs import CompletedAffair, Draw, MultiAffair
+from duel_core.affairs import CompletedAffair, Draw, EnterPhase, MultiAffair, completed_affair_of
 from duel_core.duel import Duel
 from duel_core.models import Card, Deck, Player, REPRESENTATION, RuntimeCard
 from duel_core.phase import Phase
@@ -48,7 +48,7 @@ def _make_duel() -> Duel:
     return Duel((player_1, player_2))
 
 
-def test_attack_completion_carries_multi_affair_result() -> None:
+def test_attack_completion_is_multi_affair() -> None:
     duel = _make_duel()
     player_1, player_2 = duel.state.players
 
@@ -60,7 +60,7 @@ def test_attack_completion_carries_multi_affair_result() -> None:
 
     completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair)
+    @duel.dispatcher.on(CompletedAffair, when=completed_affair_of(MultiAffair))
     def collect_completion(affair: CompletedAffair) -> None:
         completions.append(affair)
 
@@ -69,9 +69,8 @@ def test_attack_completion_carries_multi_affair_result() -> None:
 
     assert len(completions) == 1
     completion = completions[0]
-    assert completion.action == action
-    assert isinstance(completion.result, MultiAffair)
-    assert len(completion.result.children) == 2
+    assert isinstance(completion.affair, MultiAffair)
+    assert len(completion.affair.children) == 2
     assert player_2.monster_zones[0] is None
     assert player_2.life_points == 6700
 
@@ -86,12 +85,12 @@ def test_multi_affair_keeps_requester_identity() -> None:
     assert affair.requester is test_multi_affair_keeps_requester_identity
 
 
-def test_draw_completion_result_is_draw_itself() -> None:
+def test_draw_completion_affair_is_draw_itself() -> None:
     duel = _make_duel()
     current_player = duel.state.current_player
     completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair)
+    @duel.dispatcher.on(CompletedAffair, when=completed_affair_of(Draw))
     def collect_completion(affair: CompletedAffair) -> None:
         completions.append(affair)
 
@@ -100,15 +99,37 @@ def test_draw_completion_result_is_draw_itself() -> None:
             duel=duel,
             player=current_player,
             num=1,
-            requester=test_draw_completion_result_is_draw_itself,
+            requester=test_draw_completion_affair_is_draw_itself,
         )
         for _ in range(1)
     )
     hand_before = len(current_player.hand)
-    duel.emit(draw_action)
+    duel.do(draw_action)
 
     assert len(completions) == 1
     completion = completions[0]
-    assert completion.action == draw_action
-    assert completion.result == draw_action
+    assert completion.affair == draw_action
     assert len(current_player.hand) == hand_before + 1
+
+
+def test_end_phase_completes_before_draw_progression() -> None:
+    duel = _make_duel()
+    duel.state.phase = Phase.MAIN_1
+
+    end_completions: list[CompletedAffair] = []
+
+    @duel.dispatcher.on(CompletedAffair, when=completed_affair_of(EnterPhase))
+    def collect_enter_phase_completion(affair: CompletedAffair) -> None:
+        if isinstance(affair.affair, EnterPhase) and affair.affair.phase is Phase.END:
+            end_completions.append(affair)
+            assert duel.state.phase is Phase.END
+
+    end_action = next(
+        action
+        for action in duel.available_actions()
+        if isinstance(action, EnterPhase) and action.phase is Phase.END
+    )
+
+    duel.do(end_action)
+
+    assert len(end_completions) == 1
