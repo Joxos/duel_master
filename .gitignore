@@ -10,3 +10,6 @@ dist/
 
 # Local planning / evidence artifacts
 .sisyphus/
+
+# Local architecture notes kept out of git
+docs/
