@@ -51,7 +51,7 @@ This step intentionally did not include:
 - `Kernel` now owns an internal execution dispatcher
 - the outer duel dispatcher still handles authored rules, setup, available
   action collection, and other semantic collaboration
-- the internal execution dispatcher now owns execution/translation handlers for
+- the internal kernel package now owns planning and apply collaborators for
   execution-facing concerns that should not accumulate directly in `Kernel`
 
 ### Current split

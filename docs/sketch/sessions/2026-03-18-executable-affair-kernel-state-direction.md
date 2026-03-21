@@ -99,7 +99,7 @@ accepted next direction, not a claim about current implementation.
 For the next direction, `Kernel` should own:
 
 1. contradiction and priority resolution between competing effects
-2. interpretation of executable affairs into concrete execution steps
+2. coordination of planner and applier collaborators for concrete execution steps
 3. emission of `CompletedAffair(action: ExecutableAffair, result: DuelAffair)` once execution
    finishes
 
