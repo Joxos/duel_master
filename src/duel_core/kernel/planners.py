@@ -1,51 +1,19 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
+from affairon import AffairAware
+from affairon.listen import listen
 
-from duel_core.affairs import (
-    Attack,
-    Draw,
-    DuelAffair,
-    EnterPhase,
-    ExecutableAffair,
-    LpVary,
-    MultiAffair,
-    NormalSummon,
-    SendToGraveyard,
-)
-from duel_core.models import DuelState
+from duel_core.affairs import Attack, DuelAffair, LpVary, MultiAffair, SendToGraveyard
 
 
-class ActionPlanner(ABC):
-    @abstractmethod
-    def supports(self, affair: ExecutableAffair) -> bool: ...
+class AttackPlanner(AffairAware):
+    def __init__(self, kernel):
+        self.kernel = kernel
 
-    @abstractmethod
-    def plan(self, state: DuelState, affair: ExecutableAffair) -> DuelAffair: ...
-
-
-class PassthroughPlanner(ActionPlanner):
-    def __init__(self, affair_type: type[ExecutableAffair]) -> None:
-        self._affair_type = affair_type
-
-    def supports(self, affair: ExecutableAffair) -> bool:
-        return isinstance(affair, self._affair_type)
-
-    def plan(self, state: DuelState, affair: ExecutableAffair) -> DuelAffair:
-        del state
-        return affair
-
-
-class AttackPlanner(ActionPlanner):
-    def supports(self, affair: ExecutableAffair) -> bool:
-        return isinstance(affair, Attack)
-
-    def plan(self, state: DuelState, affair: ExecutableAffair) -> DuelAffair:
-        if not isinstance(affair, Attack):
-            raise ValueError(f"Unsupported executable: {type(affair).__name__}")
-
+    @listen(Attack)
+    def on_attack(self, affair: Attack) -> None:
         attacker = affair.attacker
-        defender_player = state.opponent_of(affair.player)
+        defender_player = self.kernel.state.opponent_of(affair.player)
         defender = affair.defender
         children: list[DuelAffair] = []
         attacker_atk = attacker.card.atk
@@ -54,7 +22,10 @@ class AttackPlanner(ActionPlanner):
 
         if defender is None:
             children.append(LpVary(duel=affair.duel, player=defender_player, delta=-attacker_atk))
-            return MultiAffair(duel=affair.duel, requester=self.plan, children=children)
+            self.kernel.dispatcher.emit(
+                MultiAffair(duel=affair.duel, requester=self.on_attack, children=children)
+            )
+            return
 
         defender_atk = defender.card.atk
         if defender_atk is None:
@@ -86,12 +57,6 @@ class AttackPlanner(ActionPlanner):
                 SendToGraveyard(duel=affair.duel, player=defender_player, card=defender)
             )
 
-        return MultiAffair(duel=affair.duel, requester=self.plan, children=children)
-
-
-DEFAULT_PLANNERS: tuple[ActionPlanner, ...] = (
-    AttackPlanner(),
-    PassthroughPlanner(Draw),
-    PassthroughPlanner(EnterPhase),
-    PassthroughPlanner(NormalSummon),
-)
+        self.kernel.dispatcher.emit(
+            MultiAffair(duel=affair.duel, requester=self.on_attack, children=children)
+        )
