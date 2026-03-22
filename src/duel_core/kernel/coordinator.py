@@ -1,8 +1,16 @@
+"""Kernel coordination surface for one duel instance.
+
+This module owns the duel-bound execution coordinator. It creates the internal
+dispatcher used for execution handlers and republishes completed affairs back to
+the duel-level dispatcher.
+"""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
 from affairon import Dispatcher
+from affairon.composer import PluginComposer
 
 from duel_core.affairs import (
     ActionableDuelAffair,
@@ -11,40 +19,29 @@ from duel_core.affairs import (
     ExecutableAffair,
     Forbid,
 )
-from duel_core.kernel.appliers import (
-    DrawApplier,
-    EnterPhaseApplier,
-    ForbidBridge,
-    LpVaryApplier,
-    MultiAffairApplier,
-    NormalSummonApplier,
-    SendToGraveyardApplier,
-    TurnCleanupBridge,
-)
-from duel_core.kernel.planners import AttackPlanner
 from duel_core.models import DuelState
+from duel_core.plugin_config import PYPROJECT_PATH, kernel_dispatcher_plugins
 
 if TYPE_CHECKING:
     from affairon import Dispatcher as AffairDispatcher
 
 
 class Kernel:
+    """Kernel-owned execution coordinator for one duel.
+
+    Attributes:
+        state: Runtime duel state owned by the kernel.
+        dispatcher: Internal dispatcher for execution listeners.
+    """
+
     def __init__(self, state: DuelState, duel_dispatcher: AffairDispatcher) -> None:
         self.state = state
         self._forbids: list[Forbid] = []
         self.duel_dispatcher = duel_dispatcher
         self.dispatcher = Dispatcher()
 
-        AttackPlanner(kernel=self, dispatcher=self.dispatcher)
-        MultiAffairApplier(kernel=self, dispatcher=self.dispatcher)
-        DrawApplier(kernel=self, dispatcher=self.dispatcher)
-        EnterPhaseApplier(kernel=self, dispatcher=self.dispatcher)
-        NormalSummonApplier(kernel=self, dispatcher=self.dispatcher)
-        SendToGraveyardApplier(kernel=self, dispatcher=self.dispatcher)
-        LpVaryApplier(kernel=self, dispatcher=self.dispatcher)
-
-        ForbidBridge(kernel=self, dispatcher=self.duel_dispatcher)
-        TurnCleanupBridge(kernel=self, dispatcher=self.duel_dispatcher)
+        kernel_composer = PluginComposer(self.dispatcher)
+        kernel_composer.compose_local(kernel_dispatcher_plugins(PYPROJECT_PATH))
 
     def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
         return any(
