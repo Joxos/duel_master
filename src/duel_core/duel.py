@@ -5,8 +5,6 @@ It should expose orchestration methods and leave runtime visibility logic to
 ``DuelState``.
 """
 
-from pathlib import Path
-
 from affairon import Dispatcher
 from affairon.composer import PluginComposer
 
@@ -30,8 +28,7 @@ from duel_core.affairs import (
 from duel_core.kernel import Kernel
 from duel_core.models import Card, DuelState, Player, PlayerView, RuntimeCard
 from duel_core.phase import Phase
-
-PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
+from duel_core.plugin_config import PYPROJECT_PATH, duel_dispatcher_plugins
 
 
 class Duel:
@@ -119,7 +116,7 @@ class Duel:
             raise ValueError("Duel setup already completed")
 
         composer = PluginComposer(self.dispatcher)
-        composer.compose_from_pyproject(PYPROJECT_PATH)
+        composer.compose_local(duel_dispatcher_plugins(PYPROJECT_PATH))
         self.dispatcher.emit(DuelInit(duel=self))
         self._setup_done = True
 
