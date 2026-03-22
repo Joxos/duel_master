@@ -13,7 +13,12 @@ dependencies = [
 duel-master = "duel_master.cli:main"
 
 [tool.affairon]
-local_plugins = ["duel_core.mr2020"]
+local_plugins = [
+  "duel_core.mr2020",
+  "duel_core.kernel.bridges",
+  "duel_core.kernel.planners",
+  "duel_core.kernel.appliers",
+]
 
 [dependency-groups]
 dev = [
