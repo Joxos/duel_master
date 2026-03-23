@@ -28,7 +28,9 @@ from duel_core.affairs import (
 from duel_core.kernel import Kernel
 from duel_core.models import Card, DuelState, Player, PlayerView, RuntimeCard
 from duel_core.phase import Phase
-from duel_core.plugin_config import PYPROJECT_PATH, duel_dispatcher_plugins
+from pathlib import Path
+
+PYPROJECT_PATH = Path(__file__).resolve().parents[2] / "pyproject.toml"
 
 
 class Duel:
@@ -116,7 +118,7 @@ class Duel:
             raise ValueError("Duel setup already completed")
 
         composer = PluginComposer(self.dispatcher)
-        composer.compose_local(duel_dispatcher_plugins(PYPROJECT_PATH))
+        composer.compose_from_pyproject(PYPROJECT_PATH, profile="duel")
         self.dispatcher.emit(DuelInit(duel=self))
         self._setup_done = True
 

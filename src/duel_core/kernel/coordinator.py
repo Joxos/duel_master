@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 
 from affairon import Dispatcher
 from affairon.composer import PluginComposer
+from pathlib import Path
 
 from duel_core.affairs import (
     ActionableDuelAffair,
@@ -20,7 +21,8 @@ from duel_core.affairs import (
     Forbid,
 )
 from duel_core.models import DuelState
-from duel_core.plugin_config import PYPROJECT_PATH, kernel_dispatcher_plugins
+
+PYPROJECT_PATH = Path(__file__).resolve().parents[3] / "pyproject.toml"
 
 if TYPE_CHECKING:
     from affairon import Dispatcher as AffairDispatcher
@@ -41,7 +43,7 @@ class Kernel:
         self.dispatcher = Dispatcher()
 
         kernel_composer = PluginComposer(self.dispatcher)
-        kernel_composer.compose_local(kernel_dispatcher_plugins(PYPROJECT_PATH))
+        kernel_composer.compose_from_pyproject(PYPROJECT_PATH, profile="kernel")
 
     def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
         return any(
