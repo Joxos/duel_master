@@ -8,14 +8,14 @@ from duel_core.affairs import (
     EnterPhase,
     Forbid,
     NormalSummon,
-    TurnCleanup,
     completed_enter_phase,
 )
-from duel_core.models import RuntimeCard, REPRESENTATION
+from duel_core.models import REPRESENTATION
 from duel_core.phase import Phase
 
 TURN_DRAW_NUM = 1
 INITIAL_DRAW_NUM = 5
+INITIAL_LIFE_POINTS = 8000
 
 PHASE_GRAPH: dict[Phase, tuple[Phase, ...]] = {
     Phase.DRAW: (Phase.STANDBY,),
@@ -26,14 +26,9 @@ PHASE_GRAPH: dict[Phase, tuple[Phase, ...]] = {
 }
 
 
-def can_normal_summon(card: RuntimeCard) -> bool:
-    return card.card.level is not None and card.card.level <= 4
-
-
 @listen(CompletedAffair, when=completed_enter_phase(Phase.DRAW))
 def turn_draw(completed: CompletedAffair) -> None:
     affair = completed.affair
-    assert isinstance(affair, EnterPhase)
     affair.duel.do(
         Draw(
             duel=affair.duel,
@@ -58,6 +53,12 @@ def initial_draw(affair: DuelInit) -> None:
 
 
 @listen(DuelInit)
+def assign_initial_life_points(affair: DuelInit) -> None:
+    for player in affair.duel.state.players:
+        player.life_points = INITIAL_LIFE_POINTS
+
+
+@listen(DuelInit)
 def forbid_initial_turn_draw(affair: DuelInit) -> None:
     draw_action = Draw(
         duel=affair.duel,
@@ -69,7 +70,7 @@ def forbid_initial_turn_draw(affair: DuelInit) -> None:
         Forbid(
             duel=affair.duel,
             target=draw_action,
-            outdated_when=TurnCleanup(duel=affair.duel, turn=affair.duel.state.current_turn + 1),
+            inactive_from_turn=affair.duel.state.current_turn_count + 1,
         )
     )
 
@@ -86,7 +87,7 @@ def forbid_first_turn_battle(affair: DuelInit) -> None:
         Forbid(
             duel=affair.duel,
             target=battle_action,
-            outdated_when=TurnCleanup(duel=affair.duel, turn=affair.duel.state.current_turn + 1),
+            inactive_from_turn=affair.duel.state.current_turn_count + 1,
         )
     )
 
@@ -114,13 +115,19 @@ def normal_summon_actions(affair: AvailableActions) -> None:
     if None not in affair.duel.state.current_player.monster_zones:
         return
     for card in affair.duel.state.current_player.hand:
-        if not can_normal_summon(card):
+        if card.card.level is None or card.card.level > 4:
             continue
         affair.actions.append(
             NormalSummon(
                 duel=affair.duel,
                 player=affair.duel.state.current_player,
                 card=card,
+                from_hand_index=affair.duel.state.current_player.hand.index(card),
+                to_monster_zone_index=affair.duel.state.current_player.monster_zones.index(None),
+                from_representation=card.representation,
+                to_representation=REPRESENTATION.ATTACK,
+                normal_summon_used_from=affair.duel.state.normal_summon_used,
+                normal_summon_used_to=True,
                 requester=normal_summon_actions,
             )
         )
@@ -131,7 +138,7 @@ def battle_actions(affair: AvailableActions) -> None:
     if affair.duel.state.phase is not Phase.BATTLE:
         return
     attacker = affair.duel.state.current_player
-    defender = affair.duel.state.opponent
+    defender = affair.duel.state.opponent_of(attacker)
     for attacker_card in attacker.monster_zones:
         if attacker_card is None:
             continue
