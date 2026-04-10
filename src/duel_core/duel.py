@@ -12,6 +12,7 @@ from duel_core.affairs import (
     Attack,
     AvailableActions,
     CompletedAffair,
+    DrawCard,
     Draw,
     DuelAffair,
     DuelInit,
@@ -19,14 +20,14 @@ from duel_core.affairs import (
     EnterPhase,
     ExitPhase,
     Forbid,
+    AdvanceTurn,
     LpVary,
     MultiAffair,
     NormalSummon,
     SendToGraveyard,
-    TurnCleanup,
 )
 from duel_core.kernel import Kernel
-from duel_core.models import Card, DuelState, Player, PlayerView, RuntimeCard
+from duel_core.models import Card, Deck, DuelState, Player, PlayerView, REPRESENTATION, RuntimeCard
 from duel_core.phase import Phase
 from pathlib import Path
 
@@ -41,23 +42,50 @@ class Duel:
         kernel: Execution kernel that owns runtime state.
     """
 
-    def __init__(self, players: tuple[Player, Player]) -> None:
+    def __init__(self, players: tuple[Player, Player], *, starting_player: Player) -> None:
         if len(players) != 2:
             raise ValueError("Duel requires exactly two players")
+        if starting_player not in players:
+            raise ValueError("Starting player must be one of the duel players")
 
         self._rebuild_affair_models()
-        self._setup_done = False
         self.dispatcher = Dispatcher()
         self.kernel = Kernel(
             state=DuelState(
                 players=players,
-                current_player=players[0],
-                current_turn=1,
+                current_player=starting_player,
+                current_turn_count=1,
                 phase=Phase.DRAW,
             ),
             duel_dispatcher=self.dispatcher,
         )
-        self.setup()
+        self._setup()
+
+    def _setup(self) -> None:
+        players = self.state.players
+        next_runtime_id = 1
+
+        def to_runtime(card: Card | RuntimeCard) -> RuntimeCard:
+            nonlocal next_runtime_id
+            source_card = card.card if isinstance(card, RuntimeCard) else card
+            source_representation = (
+                card.representation if isinstance(card, RuntimeCard) else REPRESENTATION.VOID
+            )
+            runtime_card = RuntimeCard(
+                runtime_id=next_runtime_id,
+                card=source_card,
+                representation=source_representation,
+            )
+            next_runtime_id += 1
+            return runtime_card
+
+        for player in players:
+            player.main_deck = Deck(cards=[to_runtime(card) for card in player.main_deck.cards])
+            player.extra_deck = Deck(cards=[to_runtime(card) for card in player.extra_deck.cards])
+
+        composer = PluginComposer(self.dispatcher)
+        composer.compose_from_pyproject(PYPROJECT_PATH, profile="duel")
+        self.dispatcher.emit(DuelInit(duel=self))
 
     @staticmethod
     def _rebuild_affair_models() -> None:
@@ -75,7 +103,6 @@ class Duel:
         ExecutableAffair.model_rebuild(_types_namespace={"Duel": Duel})
         EnterPhase.model_rebuild(_types_namespace={"Duel": Duel})
         ExitPhase.model_rebuild(_types_namespace={"Duel": Duel})
-        TurnCleanup.model_rebuild(_types_namespace={"Duel": Duel})
         Forbid.model_rebuild(_types_namespace={"Duel": Duel})
         MultiAffair.model_rebuild(_types_namespace={"Duel": Duel})
         NormalSummon.model_rebuild(
@@ -100,6 +127,19 @@ class Duel:
                 "Player": Player,
             }
         )
+        DrawCard.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
+                "RuntimeCard": RuntimeCard,
+            }
+        )
+        AdvanceTurn.model_rebuild(
+            _types_namespace={
+                "Duel": Duel,
+                "Player": Player,
+            }
+        )
         SendToGraveyard.model_rebuild(
             _types_namespace={
                 "Duel": Duel,
@@ -112,15 +152,6 @@ class Duel:
     @property
     def state(self) -> DuelState:
         return self.kernel.state
-
-    def setup(self) -> None:
-        if self._setup_done:
-            raise ValueError("Duel setup already completed")
-
-        composer = PluginComposer(self.dispatcher)
-        composer.compose_from_pyproject(PYPROJECT_PATH, profile="duel")
-        self.dispatcher.emit(DuelInit(duel=self))
-        self._setup_done = True
 
     def observe(self, view: Player) -> PlayerView:
         return self.state.observe(view)

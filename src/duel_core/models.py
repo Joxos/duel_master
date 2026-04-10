@@ -5,10 +5,19 @@ state-owned observe boundary. Rule semantics stay outside these models.
 """
 
 from enum import Enum
+from typing import Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from duel_core.phase import Phase
+
+
+class MutableModel(BaseModel):
+    model_config = ConfigDict(validate_assignment=True)
+
+
+class FrozenModel(BaseModel):
+    model_config = ConfigDict(frozen=True)
 
 
 class REPRESENTATION(Enum):
@@ -17,12 +26,10 @@ class REPRESENTATION(Enum):
     DEFENSE = "defense"
 
 
-class Card(BaseModel):
+class Card(FrozenModel):
     """Printed runtime facts for a single card instance."""
 
-    model_config = ConfigDict(frozen=True)
-
-    id: int
+    database_id: int
     name: str
     type: str
     desc: str
@@ -33,66 +40,43 @@ class Card(BaseModel):
     attribute: str | None = None
 
 
-class RuntimeCard(BaseModel):
+class RuntimeCard(MutableModel):
+    runtime_id: int
     card: Card
     representation: REPRESENTATION = REPRESENTATION.VOID
 
 
-class Deck(BaseModel):
+class Deck(MutableModel):
     """A draw-capable ordered deck for the current slice."""
 
-    model_config = ConfigDict(validate_assignment=True)
+    cards: list[Card | RuntimeCard] = Field(default_factory=list)
 
-    cards: list[Card]
-
-    def draw(self, num: int) -> list[Card]:
+    def draw(self, num: int) -> list[RuntimeCard]:
         drawn = self.cards[:num]
         del self.cards[:num]
-        return drawn
+        return cast(list[RuntimeCard], drawn)
 
 
-class Player(BaseModel):
+class Player(MutableModel):
     """Runtime state owned by one duel participant."""
-
-    model_config = ConfigDict(validate_assignment=True)
 
     label: str
     main_deck: Deck
-    extra_deck: list[Card]
+    extra_deck: Deck = Field(default_factory=Deck)
     hand: list[RuntimeCard] = Field(default_factory=list)
     monster_zones: list[RuntimeCard | None] = Field(default_factory=lambda: [None])
     graveyard: list[RuntimeCard] = Field(default_factory=list)
-    life_points: int = 8000
+    life_points: int = 0
 
 
-class DuelState(BaseModel):
+class DuelState(MutableModel):
     """Kernel-owned runtime state and observe composition boundary."""
-
-    model_config = ConfigDict(validate_assignment=True)
-
-    _VISIBLE_PLAYER_FIELDS = (
-        ("label", lambda player: player.label),
-        ("monster_zones", lambda player: tuple(player.monster_zones)),
-        ("graveyard_size", lambda player: len(player.graveyard)),
-        ("life_points", lambda player: player.life_points),
-    )
-    _PUBLIC_VIEW_FIELDS = (
-        ("current_turn", lambda state: state.current_turn),
-        ("phase", lambda state: state.phase),
-        ("normal_summon_used", lambda state: state.normal_summon_used),
-        ("battle_entered", lambda state: state.phase is Phase.BATTLE),
-    )
 
     players: tuple[Player, Player]
     current_player: Player
-    current_turn: int
+    current_turn_count: int
     phase: Phase
     normal_summon_used: bool = False
-
-    @property
-    def opponent(self) -> Player:
-        current_index = self.players.index(self.current_player)
-        return self.players[(current_index + 1) % len(self.players)]
 
     def opponent_of(self, player: Player) -> Player:
         if player is self.players[0]:
@@ -101,52 +85,44 @@ class DuelState(BaseModel):
             return self.players[0]
         raise ValueError("Player must be one of the duel players")
 
-    def _visible_player(self, player: Player) -> "VisiblePlayer":
-        data = {field_name: getter(player) for field_name, getter in self._VISIBLE_PLAYER_FIELDS}
-        return VisiblePlayer.model_validate(data)
-
-    def _public_view(self) -> "PublicView":
-        data = {field_name: getter(self) for field_name, getter in self._PUBLIC_VIEW_FIELDS}
-        return PublicView.model_validate(data)
-
     def observe(self, view: Player) -> "PlayerView":
         opponent = self.opponent_of(view)
-        return PlayerView(
-            viewer=self._visible_player(view),
-            opponent=self._visible_player(opponent),
-            current_player=self._visible_player(self.current_player),
-            public=self._public_view(),
-        )
+        return PlayerView.from_state(self, viewer=view, opponent=opponent)
 
 
-class PublicView(BaseModel):
-    """Public duel facts visible regardless of player perspective."""
-
-    model_config = ConfigDict(frozen=True)
-
-    current_turn: int
-    phase: Phase
-    normal_summon_used: bool
-    battle_entered: bool
-
-
-class VisiblePlayer(BaseModel):
+class VisiblePlayer(FrozenModel):
     """Player-facing visible information for one side of the field."""
-
-    model_config = ConfigDict(frozen=True)
 
     label: str
     monster_zones: tuple[RuntimeCard | None, ...]
     graveyard_size: int
     life_points: int
 
+    @classmethod
+    def from_player(cls, player: Player) -> Self:
+        return cls(
+            label=player.label,
+            monster_zones=tuple(player.monster_zones),
+            graveyard_size=len(player.graveyard),
+            life_points=player.life_points,
+        )
 
-class PlayerView(BaseModel):
-    """Access-controlled player-facing view of the duel state."""
 
-    model_config = ConfigDict(frozen=True)
-
+class PlayerView(FrozenModel):
     viewer: VisiblePlayer
     opponent: VisiblePlayer
     current_player: VisiblePlayer
-    public: PublicView
+    current_turn: int
+    phase: Phase
+    normal_summon_used: bool
+
+    @classmethod
+    def from_state(cls, state: DuelState, viewer: Player, opponent: Player) -> Self:
+        return cls(
+            viewer=VisiblePlayer.from_player(viewer),
+            opponent=VisiblePlayer.from_player(opponent),
+            current_player=VisiblePlayer.from_player(state.current_player),
+            current_turn=state.current_turn_count,
+            phase=state.phase,
+            normal_summon_used=state.normal_summon_used,
+        )

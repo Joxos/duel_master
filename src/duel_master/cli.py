@@ -7,6 +7,7 @@ manual smoke testing of the current architecture-first slice.
 from cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
 from duel_core import Card, Deck, Duel, Player
 from duel_core.models import RuntimeCard, PlayerView, VisiblePlayer
+from duel_core.phase import Phase
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
@@ -16,53 +17,50 @@ console = Console()
 
 
 def build_demo_duel() -> Duel:
-    return Duel(
-        players=(
-            Player(
-                label="Player 1",
-                main_deck=Deck(
-                    cards=[
-                        blue_eyes_white_dragon_89631139(),
-                        *[
-                            Card(
-                                id=1000 + i,
-                                name=f"p1-{i}",
-                                type="Normal Monster",
-                                desc="Demo monster",
-                                atk=1000,
-                                def_=1000,
-                                level=4,
-                                race="Dragon",
-                                attribute="LIGHT",
-                            )
-                            for i in range(10)
-                        ],
-                    ]
-                ),
-                extra_deck=[],
-            ),
-            Player(
-                label="Player 2",
-                main_deck=Deck(
-                    cards=[
-                        Card(
-                            id=2000 + i,
-                            name=f"p2-{i}",
-                            type="Normal Monster",
-                            desc="Demo monster",
-                            atk=1000,
-                            def_=1000,
-                            level=4,
-                            race="Dragon",
-                            attribute="LIGHT",
-                        )
-                        for i in range(10)
-                    ]
-                ),
-                extra_deck=[],
-            ),
-        )
+    player_1 = Player(
+        label="Player 1",
+        main_deck=Deck(
+            cards=[
+                blue_eyes_white_dragon_89631139(),
+                *[
+                    Card(
+                        database_id=1000 + i,
+                        name=f"p1-{i}",
+                        type="Normal Monster",
+                        desc="Demo monster",
+                        atk=1000,
+                        def_=1000,
+                        level=4,
+                        race="Dragon",
+                        attribute="LIGHT",
+                    )
+                    for i in range(10)
+                ],
+            ]
+        ),
+        extra_deck=Deck(cards=[]),
     )
+    player_2 = Player(
+        label="Player 2",
+        main_deck=Deck(
+            cards=[
+                Card(
+                    database_id=2000 + i,
+                    name=f"p2-{i}",
+                    type="Normal Monster",
+                    desc="Demo monster",
+                    atk=1000,
+                    def_=1000,
+                    level=4,
+                    race="Dragon",
+                    attribute="LIGHT",
+                )
+                for i in range(10)
+            ]
+        ),
+        extra_deck=Deck(cards=[]),
+    )
+    return Duel(players=(player_1, player_2), starting_player=player_1)
 
 
 def _format_zone_card(card: RuntimeCard | None) -> str:
@@ -88,10 +86,10 @@ def _build_status_panel(view: PlayerView) -> Panel:
             f"Current player: {view.current_player.label}",
             f"Viewer: {view.viewer.label}",
             f"Opponent: {view.opponent.label}",
-            f"Turn: {view.public.current_turn}",
-            f"Phase: {view.public.phase.value}",
-            f"Battle entered: {'Yes' if view.public.battle_entered else 'No'}",
-            f"Normal summon used: {'Yes' if view.public.normal_summon_used else 'No'}",
+            f"Turn: {view.current_turn}",
+            f"Phase: {view.phase.value}",
+            f"Battle entered: {'Yes' if view.phase is Phase.BATTLE else 'No'}",
+            f"Normal summon used: {'Yes' if view.normal_summon_used else 'No'}",
         ]
     )
     return Panel(status, title="Duel Status", border_style="cyan")
