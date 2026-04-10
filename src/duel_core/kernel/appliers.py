@@ -8,77 +8,93 @@ the duel dispatcher through the kernel.
 from affairon.listen import listen
 
 from duel_core.affairs import (
-    Draw,
+    AdvanceTurn,
+    DrawCard,
     EnterPhase,
     LpVary,
     MultiAffair,
     NormalSummon,
     SendToGraveyard,
-    TurnCleanup,
 )
-from duel_core.models import RuntimeCard, REPRESENTATION
 from duel_core.phase import Phase
 
 
 @listen(MultiAffair)
-def on_multi_affair(affair: MultiAffair) -> None:
+def apply_multi_affair(affair: MultiAffair) -> None:
     kernel = affair.duel.kernel
     for child in affair.children:
         kernel.dispatcher.emit(child)
     kernel.complete(affair)
 
 
-@listen(Draw)
-def on_draw(affair: Draw) -> None:
+@listen(DrawCard)
+def apply_draw_card(affair: DrawCard) -> None:
+    drawn_card = affair.player.main_deck.draw(1)[0]
+    if drawn_card is not affair.card:
+        raise ValueError("DrawCard must apply the planned card")
+    affair.player.hand.append(drawn_card)
+
+
+@listen(EnterPhase, when=lambda affair: affair.phase is Phase.END)
+def complete_end_phase(affair: EnterPhase) -> None:
     kernel = affair.duel.kernel
-    drawn = affair.player.main_deck.draw(affair.num)
-    affair.player.hand.extend(RuntimeCard(card=c) for c in drawn)
+    kernel.state.phase = affair.phase
     kernel.complete(affair)
-
-
-@listen(EnterPhase)
-def on_enter_phase(affair: EnterPhase) -> None:
-    kernel = affair.duel.kernel
-    if affair.phase is Phase.END:
-        kernel.state.phase = affair.phase
-        kernel.complete(affair)
-        kernel.state.current_player = kernel.state.opponent
-        kernel.state.current_turn += 1
-        kernel.duel_dispatcher.emit(TurnCleanup(duel=affair.duel, turn=kernel.state.current_turn))
-        kernel.do(
-            EnterPhase(
-                duel=affair.duel,
-                phase=Phase.DRAW,
-                source_phase=affair.phase,
-                requester=on_enter_phase,
-            )
+    kernel.dispatcher.emit(
+        AdvanceTurn(
+            duel=affair.duel,
+            from_turn=kernel.state.current_turn_count,
+            to_turn=kernel.state.current_turn_count + 1,
+            from_player=kernel.state.current_player,
+            to_player=kernel.state.opponent_of(kernel.state.current_player),
+            normal_summon_used_from=kernel.state.normal_summon_used,
+            normal_summon_used_to=False,
         )
-        return
+    )
+
+
+@listen(EnterPhase, when=lambda affair: affair.phase is not Phase.END)
+def apply_phase_entry(affair: EnterPhase) -> None:
+    kernel = affair.duel.kernel
     kernel.state.phase = affair.phase
     kernel.complete(affair)
 
 
-@listen(NormalSummon)
-def on_normal_summon(affair: NormalSummon) -> None:
+@listen(AdvanceTurn)
+def apply_advance_turn(affair: AdvanceTurn) -> None:
     kernel = affair.duel.kernel
-    if kernel.state.normal_summon_used:
-        raise ValueError("Normal summon already used this turn")
-    empty_zone = affair.player.monster_zones.index(None)
-    hand_index = affair.player.hand.index(affair.card)
-    affair.player.monster_zones[empty_zone] = affair.player.hand.pop(hand_index)
-    affair.card.representation = REPRESENTATION.ATTACK
-    kernel.state.normal_summon_used = True
+    kernel.state.current_player = affair.to_player
+    kernel.state.current_turn_count = affair.to_turn
+    kernel.state.normal_summon_used = affair.normal_summon_used_to
+    kernel.complete(affair)
+    kernel.do(
+        EnterPhase(
+            duel=affair.duel,
+            phase=Phase.DRAW,
+            source_phase=Phase.END,
+            requester=apply_advance_turn,
+        )
+    )
+
+
+@listen(NormalSummon)
+def apply_normal_summon(affair: NormalSummon) -> None:
+    kernel = affair.duel.kernel
+    affair.player.monster_zones[affair.to_monster_zone_index] = affair.player.hand.pop(
+        affair.from_hand_index
+    )
+    affair.card.representation = affair.to_representation
+    kernel.state.normal_summon_used = affair.normal_summon_used_to
     kernel.complete(affair)
 
 
 @listen(SendToGraveyard)
-def on_send_to_graveyard(affair: SendToGraveyard) -> None:
-    zone_index = affair.player.monster_zones.index(affair.card)
-    affair.player.monster_zones[zone_index] = None
-    affair.card.representation = REPRESENTATION.VOID
-    affair.player.graveyard.append(affair.card)
+def apply_send_to_graveyard(affair: SendToGraveyard) -> None:
+    affair.player.monster_zones[affair.from_monster_zone_index] = None
+    affair.card.representation = affair.to_representation
+    affair.player.graveyard.insert(affair.to_graveyard_index, affair.card)
 
 
 @listen(LpVary)
-def on_lp_vary(affair: LpVary) -> None:
+def apply_lp_vary(affair: LpVary) -> None:
     affair.player.life_points += affair.delta

@@ -46,8 +46,16 @@ class Kernel:
         kernel_composer.compose_from_pyproject(PYPROJECT_PATH, profile="kernel")
 
     def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
+        """Check whether an actionable affair is currently forbidden.
+
+        Args:
+            affair: The actionable affair to test.
+
+        Returns:
+            True when a matching forbid remains active in the current turn.
+        """
         return any(
-            forbid.target == affair and forbid.outdated_when.turn >= self.state.current_turn
+            forbid.target == affair and self.state.current_turn_count < forbid.inactive_from_turn
             for forbid in self._forbids
         )
 
