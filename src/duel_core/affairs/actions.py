@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from duel_core.affairs.base import ActionableDuelAffair, AtomicAction, DuelAffair, ExecutableAffair
+from duel_core.affairs.base import DuelAffairWithRequester, AtomicAction, DuelAffair, ExposedUserAction
 from duel_core.models import REPRESENTATION
 
 if TYPE_CHECKING:
     from duel_core.models import Player, RuntimeCard, Zone
 
 
-class Draw(ExecutableAffair):
+class Draw(ExposedUserAction):
     player: Player
     num: int
 
@@ -34,25 +34,7 @@ class MoveCard(AtomicAction):
     to_representation: REPRESENTATION
 
 
-class NormalSummon(ExecutableAffair):
-    player: Player
-    card: RuntimeCard
-    to_zone: Zone
-    from_representation: REPRESENTATION
-    to_representation: REPRESENTATION
-    normal_summon_used_from: bool
-    normal_summon_used_to: bool
-
-    def __str__(self) -> str:
-        return f"Normal Summon {self.card.card.name}"
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, NormalSummon):
-            return False
-        return super().__eq__(other) and self.player is other.player and self.card == other.card
-
-
-class Attack(ExecutableAffair):
+class Attack(ExposedUserAction):
     player: Player
     attacker: RuntimeCard
     defender: RuntimeCard | None = None
@@ -79,7 +61,7 @@ class LpVary(AtomicAction):
 
 
 class Forbid(DuelAffair):
-    target: ActionableDuelAffair
+    target: DuelAffairWithRequester
     inactive_from_turn: int
 
     def __eq__(self, other: object) -> bool:
