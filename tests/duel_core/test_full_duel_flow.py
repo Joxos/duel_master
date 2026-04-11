@@ -7,13 +7,13 @@ from duel_core.affairs import (
     Draw,
     EnterPhase,
     MoveCard,
-    MultiAffair,
-    NormalSummon,
+    MultiAction,
     completed_affair_of,
-    completed_multi_origin_of,
+    completed_multi_action_origin_of,
 )
 from duel_core.duel import Duel
 from duel_core.models import Card, Deck, Player, REPRESENTATION, RuntimeCard
+from duel_core.mr2020 import NormalSummon
 from duel_core.phase import Phase
 
 
@@ -71,11 +71,11 @@ def test_complete_duel_flow() -> None:
     advance_turn_completions: list[CompletedAffair] = []
     end_phase_completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Attack))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Attack))
     def track_attack_completion(affair: CompletedAffair) -> None:
         attack_completions.append(affair)
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Draw))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Draw))
     def track_draw_completion(affair: CompletedAffair) -> None:
         draw_completions.append(affair)
 
@@ -118,7 +118,7 @@ def test_complete_duel_flow() -> None:
     )
     assert duel.state.phase is Phase.MAIN_1
 
-    from duel_core.mr2020 import phase_actions
+    from duel_core.mr2020.rules import phase_actions
 
     battle_forbidden_check = EnterPhase(
         duel=duel,
@@ -228,18 +228,18 @@ def test_complete_duel_flow() -> None:
 
     assert len(attack_completions) == 1
     attack_completion = attack_completions[0]
-    assert isinstance(attack_completion.affair, MultiAffair)
+    assert isinstance(attack_completion.affair, MultiAction)
     assert len(attack_completion.affair.children) == 2
 
     assert player_1.monster_zones[0].card is None
 
     draw_completion = next(
-        (c for c in draw_completions if isinstance(c.affair, MultiAffair)),
+        (c for c in draw_completions if isinstance(c.affair, MultiAction)),
         None,
     )
     if draw_completion:
         affair = draw_completion.affair
-        assert isinstance(affair, MultiAffair)
+        assert isinstance(affair, MultiAction)
         assert isinstance(affair.origin, Draw)
         assert all(isinstance(child, MoveCard) for child in affair.children)
 
@@ -263,7 +263,7 @@ def test_complete_duel_flow() -> None:
     assert duel.state.current_turn_count == 3
     assert len(end_phase_completions) == 2
 
-    test_affair = MultiAffair(
+    test_affair = MultiAction(
         duel=duel,
         requester=test_complete_duel_flow,
         origin=Draw(

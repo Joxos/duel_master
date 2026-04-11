@@ -5,13 +5,13 @@ from duel_core.affairs import (
     Draw,
     EnterPhase,
     MoveCard,
-    MultiAffair,
-    NormalSummon,
+    MultiAction,
     completed_affair_of,
-    completed_multi_origin_of,
+    completed_multi_action_origin_of,
 )
 from duel_core.duel import Duel
 from duel_core.models import Card, Deck, Player, REPRESENTATION, RuntimeCard
+from duel_core.mr2020 import NormalSummon
 from duel_core.phase import Phase
 
 
@@ -72,7 +72,7 @@ def test_attack_completion_is_multi_affair() -> None:
 
     completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Attack))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Attack))
     def collect_completion(affair: CompletedAffair) -> None:
         completions.append(affair)
 
@@ -81,28 +81,28 @@ def test_attack_completion_is_multi_affair() -> None:
 
     assert len(completions) == 1
     completion = completions[0]
-    assert isinstance(completion.affair, MultiAffair)
+    assert isinstance(completion.affair, MultiAction)
     assert len(completion.affair.children) == 2
     assert player_2.monster_zones[0].card is None
     assert player_2.life_points == 6700
 
 
-def test_multi_affair_keeps_requester_identity() -> None:
+def test_multi_action_keeps_requester_identity() -> None:
     duel = _make_duel()
 
-    affair = MultiAffair(
+    affair = MultiAction(
         duel=duel,
-        requester=test_multi_affair_keeps_requester_identity,
+        requester=test_multi_action_keeps_requester_identity,
         origin=Draw(
             duel=duel,
             player=duel.state.current_player,
             num=1,
-            requester=test_multi_affair_keeps_requester_identity,
+            requester=test_multi_action_keeps_requester_identity,
         ),
         children=[],
     )
 
-    assert affair.requester is test_multi_affair_keeps_requester_identity
+    assert affair.requester is test_multi_action_keeps_requester_identity
 
 
 def test_draw_completion_affair_is_draw_itself() -> None:
@@ -110,7 +110,7 @@ def test_draw_completion_affair_is_draw_itself() -> None:
     current_player = duel.state.current_player
     completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Draw))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Draw))
     def collect_completion(affair: CompletedAffair) -> None:
         completions.append(affair)
 
@@ -128,7 +128,7 @@ def test_draw_completion_affair_is_draw_itself() -> None:
 
     assert len(completions) == 1
     completion = completions[0]
-    assert isinstance(completion.affair, MultiAffair)
+    assert isinstance(completion.affair, MultiAction)
     assert completion.affair.origin == draw_action
     assert len(current_player.hand) == hand_before + 1
 
@@ -169,7 +169,7 @@ def test_turn_rollover_expires_forbids_and_draws_next_card() -> None:
     def collect_advance_turn(affair: CompletedAffair) -> None:
         advance_turn_completions.append(affair)
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Draw))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Draw))
     def collect_turn_draw(affair: CompletedAffair) -> None:
         draw_completions.append(affair)
 
@@ -223,7 +223,7 @@ def test_observe_accepts_original_player_identity() -> None:
     assert view.public.players[0].label == "P1"
 
 
-def test_manual_normal_summon_bypasses_rule_gate() -> None:
+def test_manual_normal_summon_respects_rule_gate() -> None:
     duel = _make_duel()
     player = duel.state.current_player
     duel.state.phase = Phase.MAIN_1
@@ -239,12 +239,15 @@ def test_manual_normal_summon_bypasses_rule_gate() -> None:
         to_representation=REPRESENTATION.ATTACK,
         normal_summon_used_from=True,
         normal_summon_used_to=True,
-        requester=test_manual_normal_summon_bypasses_rule_gate,
+        requester=test_manual_normal_summon_respects_rule_gate,
     )
 
-    duel.do(action)
-
-    assert player.monster_zones[0].card is card
+    try:
+        duel.do(action)
+    except ValueError as exc:
+        assert str(exc) == "Normal summon already used"
+    else:
+        raise AssertionError("NormalSummon should respect MR2020 summon legality")
 
 
 def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> None:
@@ -252,7 +255,7 @@ def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> Non
     current_player = duel.state.current_player
     completions: list[CompletedAffair] = []
 
-    @duel.dispatcher.on(CompletedAffair, when=completed_multi_origin_of(Draw))
+    @duel.dispatcher.on(CompletedAffair, when=completed_multi_action_origin_of(Draw))
     def collect_completion(affair: CompletedAffair) -> None:
         completions.append(affair)
 
@@ -267,7 +270,7 @@ def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> Non
 
     assert len(completions) == 1
     completion = completions[0]
-    assert isinstance(completion.affair, MultiAffair)
+    assert isinstance(completion.affair, MultiAction)
     assert completion.affair.origin == draw_action
     assert all(isinstance(child, MoveCard) for child in completion.affair.children)
 
