@@ -6,7 +6,7 @@ manual smoke testing of the current architecture-first slice.
 
 from cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
 from duel_core import Card, Deck, Duel, Player
-from duel_core.models import RuntimeCard, PlayerView, VisiblePlayer
+from duel_core.models import PlayerView, PublicPlayerView, RuntimeCard
 from duel_core.phase import Phase
 from rich.columns import Columns
 from rich.console import Console
@@ -69,7 +69,7 @@ def _format_zone_card(card: RuntimeCard | None) -> str:
     return card.card.name
 
 
-def _build_player_panel(player: VisiblePlayer, *, border_style: str) -> Panel:
+def _build_public_player_panel(player: PublicPlayerView, *, border_style: str) -> Panel:
     zone_table = Table(show_header=True, header_style="bold magenta")
     zone_table.add_column("Slot", justify="right", width=4)
     zone_table.add_column("Monster Zone")
@@ -80,16 +80,26 @@ def _build_player_panel(player: VisiblePlayer, *, border_style: str) -> Panel:
     return Panel(zone_table, title=player.label, border_style=border_style)
 
 
+def _build_private_panel(view: PlayerView) -> Panel:
+    hand_table = Table(show_header=True, header_style="bold green")
+    hand_table.add_column("#", justify="right", width=3)
+    hand_table.add_column("Hand")
+    for index, card in enumerate(view.hand, start=1):
+        hand_table.add_row(str(index), card.card.name)
+    hand_table.add_row("MD", str(view.main_deck_size))
+    hand_table.add_row("ED", str(view.extra_deck_size))
+    return Panel(hand_table, title=view.player_label, border_style="green")
+
+
 def _build_status_panel(view: PlayerView) -> Panel:
     status = "\n".join(
         [
-            f"Current player: {view.current_player.label}",
-            f"Viewer: {view.viewer.label}",
-            f"Opponent: {view.opponent.label}",
-            f"Turn: {view.current_turn}",
-            f"Phase: {view.phase.value}",
-            f"Battle entered: {'Yes' if view.phase is Phase.BATTLE else 'No'}",
-            f"Normal summon used: {'Yes' if view.normal_summon_used else 'No'}",
+            f"Current player: {view.public.current_player_label}",
+            f"Viewer: {view.player_label}",
+            f"Turn: {view.public.current_turn}",
+            f"Phase: {view.public.phase.value}",
+            f"Battle entered: {'Yes' if view.public.phase is Phase.BATTLE else 'No'}",
+            f"Normal summon used: {'Yes' if view.public.normal_summon_used else 'No'}",
         ]
     )
     return Panel(status, title="Duel Status", border_style="cyan")
@@ -100,8 +110,9 @@ def render(view: PlayerView) -> None:
     console.print(
         Columns(
             [
-                _build_player_panel(view.viewer, border_style="green"),
-                _build_player_panel(view.opponent, border_style="yellow"),
+                _build_private_panel(view),
+                _build_public_player_panel(view.public.players[0], border_style="green"),
+                _build_public_player_panel(view.public.players[1], border_style="yellow"),
             ]
         )
     )

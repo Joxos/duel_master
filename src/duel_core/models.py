@@ -46,6 +46,10 @@ class RuntimeCard(MutableModel):
     representation: REPRESENTATION = REPRESENTATION.VOID
 
 
+class Zone(MutableModel):
+    card: RuntimeCard | None = None
+
+
 class Deck(MutableModel):
     """A draw-capable ordered deck for the current slice."""
 
@@ -64,7 +68,7 @@ class Player(MutableModel):
     main_deck: Deck
     extra_deck: Deck = Field(default_factory=Deck)
     hand: list[RuntimeCard] = Field(default_factory=list)
-    monster_zones: list[RuntimeCard | None] = Field(default_factory=lambda: [None])
+    monster_zones: list[Zone] = Field(default_factory=lambda: [Zone()])
     graveyard: list[RuntimeCard] = Field(default_factory=list)
     life_points: int = 0
 
@@ -86,13 +90,12 @@ class DuelState(MutableModel):
         raise ValueError("Player must be one of the duel players")
 
     def observe(self, view: Player) -> "PlayerView":
-        opponent = self.opponent_of(view)
-        return PlayerView.from_state(self, viewer=view, opponent=opponent)
+        if view not in self.players:
+            raise ValueError("Player must be one of the duel players")
+        return PlayerView.from_state(self, viewer=view)
 
 
-class VisiblePlayer(FrozenModel):
-    """Player-facing visible information for one side of the field."""
-
+class PublicPlayerView(FrozenModel):
     label: str
     monster_zones: tuple[RuntimeCard | None, ...]
     graveyard_size: int
@@ -102,27 +105,44 @@ class VisiblePlayer(FrozenModel):
     def from_player(cls, player: Player) -> Self:
         return cls(
             label=player.label,
-            monster_zones=tuple(player.monster_zones),
+            monster_zones=tuple(zone.card for zone in player.monster_zones),
             graveyard_size=len(player.graveyard),
             life_points=player.life_points,
         )
 
 
-class PlayerView(FrozenModel):
-    viewer: VisiblePlayer
-    opponent: VisiblePlayer
-    current_player: VisiblePlayer
+class PublicView(FrozenModel):
+    current_player_label: str
     current_turn: int
     phase: Phase
     normal_summon_used: bool
+    players: tuple[PublicPlayerView, PublicPlayerView]
 
     @classmethod
-    def from_state(cls, state: DuelState, viewer: Player, opponent: Player) -> Self:
+    def from_state(cls, state: DuelState) -> Self:
+        public_players = tuple(PublicPlayerView.from_player(player) for player in state.players)
         return cls(
-            viewer=VisiblePlayer.from_player(viewer),
-            opponent=VisiblePlayer.from_player(opponent),
-            current_player=VisiblePlayer.from_player(state.current_player),
+            current_player_label=state.current_player.label,
             current_turn=state.current_turn_count,
             phase=state.phase,
             normal_summon_used=state.normal_summon_used,
+            players=cast(tuple[PublicPlayerView, PublicPlayerView], public_players),
+        )
+
+
+class PlayerView(FrozenModel):
+    player_label: str
+    hand: tuple[RuntimeCard, ...]
+    main_deck_size: int
+    extra_deck_size: int
+    public: PublicView
+
+    @classmethod
+    def from_state(cls, state: DuelState, viewer: Player) -> Self:
+        return cls(
+            player_label=viewer.label,
+            hand=tuple(viewer.hand),
+            main_deck_size=len(viewer.main_deck.cards),
+            extra_deck_size=len(viewer.extra_deck.cards),
+            public=PublicView.from_state(state),
         )
