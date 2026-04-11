@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from duel_core.affairs.base import AtomicAction, ExecutableAffair
+from duel_core.affairs.base import AtomicAction, ExposedUserAction
 from duel_core.phase import Phase
 
 if TYPE_CHECKING:
     from duel_core.models import Player
 
 
-class EnterPhase(ExecutableAffair):
+class EnterPhase(ExposedUserAction):
     phase: Phase
     source_phase: Phase
 
@@ -30,7 +30,7 @@ class EnterPhase(ExecutableAffair):
         return requester_match and source_match and phase_match
 
 
-class ExitPhase(ExecutableAffair):
+class ExitPhase(ExposedUserAction):
     phase: Phase
 
 

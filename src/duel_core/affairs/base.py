@@ -31,7 +31,7 @@ class AtomicAction(DuelAffair):
     pass
 
 
-class ActionableDuelAffair(DuelAffair):
+class DuelAffairWithRequester(DuelAffair):
     """Affair whose semantic source matters for identity checks.
 
     Attributes:
@@ -41,12 +41,12 @@ class ActionableDuelAffair(DuelAffair):
     requester: Callable[..., object]
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, ActionableDuelAffair):
+        if not isinstance(other, DuelAffairWithRequester):
             return False
         return self.requester is other.requester
 
 
-class ExecutableAffair(ActionableDuelAffair):
+class ExposedUserAction(DuelAffairWithRequester):
     """Affair that can be surfaced to the user as an executable action.
 
     Attributes:

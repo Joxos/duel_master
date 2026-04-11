@@ -15,17 +15,17 @@ from duel_core.affairs import (
     Draw,
     DuelAffair,
     DuelInit,
-    ExecutableAffair,
+    ExposedUserAction,
     EnterPhase,
     ExitPhase,
     Forbid,
     AdvanceTurn,
     LpVary,
     MoveCard,
-    MultiAffair,
-    NormalSummon,
+    MultiAction,
 )
 from duel_core.kernel import Kernel
+from duel_core.mr2020 import NormalSummon
 from duel_core.models import (
     Card,
     Deck,
@@ -98,7 +98,7 @@ class Duel:
     @staticmethod
     def _rebuild_affair_models() -> None:
         AvailableActions.model_rebuild(
-            _types_namespace={"Duel": Duel, "ExecutableAffair": ExecutableAffair}
+            _types_namespace={"Duel": Duel, "ExecutableAffair": ExposedUserAction}
         )
         CompletedAffair.model_rebuild(
             _types_namespace={
@@ -108,16 +108,15 @@ class Duel:
         )
         Draw.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player})
         DuelInit.model_rebuild(_types_namespace={"Duel": Duel})
-        ExecutableAffair.model_rebuild(_types_namespace={"Duel": Duel})
+        ExposedUserAction.model_rebuild(_types_namespace={"Duel": Duel})
         EnterPhase.model_rebuild(_types_namespace={"Duel": Duel})
         ExitPhase.model_rebuild(_types_namespace={"Duel": Duel})
         Forbid.model_rebuild(_types_namespace={"Duel": Duel})
-        MultiAffair.model_rebuild(_types_namespace={"Duel": Duel})
+        MultiAction.model_rebuild(_types_namespace={"Duel": Duel})
         NormalSummon.model_rebuild(
             _types_namespace={
                 "Duel": Duel,
                 "Player": Player,
-                "Card": Card,
                 "RuntimeCard": RuntimeCard,
                 "Zone": Zone,
             }
@@ -158,10 +157,10 @@ class Duel:
     def observe(self, view: Player) -> PlayerView:
         return self.state.observe(view)
 
-    def available_actions(self) -> list[ExecutableAffair]:
+    def available_actions(self) -> list[ExposedUserAction]:
         collector = AvailableActions(duel=self)
         self.dispatcher.emit(collector)
         return collector.actions
 
-    def do(self, action: ExecutableAffair) -> None:
+    def do(self, action: ExposedUserAction) -> None:
         self.kernel.do(action)

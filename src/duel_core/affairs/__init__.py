@@ -4,22 +4,21 @@ from duel_core.affairs.actions import (
     Forbid,
     LpVary,
     MoveCard,
-    NormalSummon,
 )
-from duel_core.affairs.base import ActionableDuelAffair, AtomicAction, DuelAffair, ExecutableAffair
-from duel_core.affairs.flow import (
+from duel_core.affairs.base import DuelAffairWithRequester, AtomicAction, DuelAffair, ExposedUserAction
+from duel_core.affairs.duel_flow import (
     AvailableActions,
     CompletedAffair,
     DuelInit,
-    MultiAffair,
+    MultiAction,
     completed_affair_of,
     completed_enter_phase,
-    completed_multi_origin_of,
+    completed_multi_action_origin_of,
 )
 from duel_core.affairs.turn import AdvanceTurn, EnterPhase, ExitPhase
 
 __all__ = [
-    "ActionableDuelAffair",
+    "DuelAffairWithRequester",
     "AdvanceTurn",
     "AtomicAction",
     "Attack",
@@ -29,14 +28,13 @@ __all__ = [
     "DuelAffair",
     "DuelInit",
     "EnterPhase",
-    "ExecutableAffair",
+    "ExposedUserAction",
     "ExitPhase",
     "Forbid",
     "LpVary",
     "MoveCard",
-    "MultiAffair",
-    "NormalSummon",
+    "MultiAction",
     "completed_affair_of",
     "completed_enter_phase",
-    "completed_multi_origin_of",
+    "completed_multi_action_origin_of",
 ]
