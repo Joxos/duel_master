@@ -17,7 +17,7 @@ local_plugins = []
 
 [tool.affairon.profiles.duel]
 local_plugins = [
-  "duel_core.mr2020",
+  "duel_core.mr2020.rules",
   "duel_core.kernel.bridges",
 ]
 
@@ -25,6 +25,7 @@ local_plugins = [
 local_plugins = [
   "duel_core.kernel.planners",
   "duel_core.kernel.appliers",
+  "duel_core.mr2020.actions",
 ]
 
 [dependency-groups]

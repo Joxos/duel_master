@@ -1,4 +1,5 @@
 from affairon.listen import listen
+
 from duel_core.affairs import (
     Attack,
     AvailableActions,
@@ -7,10 +8,10 @@ from duel_core.affairs import (
     DuelInit,
     EnterPhase,
     Forbid,
-    NormalSummon,
     completed_enter_phase,
 )
 from duel_core.models import REPRESENTATION
+from duel_core.mr2020.actions import NormalSummon
 from duel_core.phase import Phase
 
 TURN_DRAW_NUM = 1
