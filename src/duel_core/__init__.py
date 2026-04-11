@@ -2,7 +2,6 @@ from duel_core.affairs import (
     AdvanceTurn,
     Attack,
     CompletedAffair,
-    DrawCard,
     Draw,
     DuelInit,
     EnterPhase,
@@ -10,12 +9,12 @@ from duel_core.affairs import (
     ExitPhase,
     Forbid,
     LpVary,
+    MoveCard,
     MultiAffair,
     NormalSummon,
-    SendToGraveyard,
 )
 from duel_core.duel import Duel
-from duel_core.models import Card, Deck, Player, PlayerView
+from duel_core.models import Card, Deck, Player, PlayerView, PublicView, Zone
 from duel_core.phase import Phase
 
 __all__ = [
@@ -24,7 +23,6 @@ __all__ = [
     "CompletedAffair",
     "Card",
     "Deck",
-    "DrawCard",
     "Draw",
     "Duel",
     "DuelInit",
@@ -33,10 +31,12 @@ __all__ = [
     "ExitPhase",
     "Forbid",
     "LpVary",
+    "MoveCard",
     "MultiAffair",
     "NormalSummon",
     "Phase",
     "Player",
     "PlayerView",
-    "SendToGraveyard",
+    "PublicView",
+    "Zone",
 ]

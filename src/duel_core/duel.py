@@ -12,7 +12,6 @@ from duel_core.affairs import (
     Attack,
     AvailableActions,
     CompletedAffair,
-    DrawCard,
     Draw,
     DuelAffair,
     DuelInit,
@@ -22,12 +21,21 @@ from duel_core.affairs import (
     Forbid,
     AdvanceTurn,
     LpVary,
+    MoveCard,
     MultiAffair,
     NormalSummon,
-    SendToGraveyard,
 )
 from duel_core.kernel import Kernel
-from duel_core.models import Card, Deck, DuelState, Player, PlayerView, REPRESENTATION, RuntimeCard
+from duel_core.models import (
+    Card,
+    Deck,
+    DuelState,
+    Player,
+    PlayerView,
+    REPRESENTATION,
+    RuntimeCard,
+    Zone,
+)
 from duel_core.phase import Phase
 from pathlib import Path
 
@@ -111,6 +119,7 @@ class Duel:
                 "Player": Player,
                 "Card": Card,
                 "RuntimeCard": RuntimeCard,
+                "Zone": Zone,
             }
         )
         Attack.model_rebuild(
@@ -127,25 +136,18 @@ class Duel:
                 "Player": Player,
             }
         )
-        DrawCard.model_rebuild(
+        MoveCard.model_rebuild(
             _types_namespace={
                 "Duel": Duel,
                 "Player": Player,
                 "RuntimeCard": RuntimeCard,
+                "Zone": Zone,
             }
         )
         AdvanceTurn.model_rebuild(
             _types_namespace={
                 "Duel": Duel,
                 "Player": Player,
-            }
-        )
-        SendToGraveyard.model_rebuild(
-            _types_namespace={
-                "Duel": Duel,
-                "Player": Player,
-                "Card": Card,
-                "RuntimeCard": RuntimeCard,
             }
         )
 

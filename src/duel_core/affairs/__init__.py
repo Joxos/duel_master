@@ -1,11 +1,10 @@
 from duel_core.affairs.actions import (
     Attack,
     Draw,
-    DrawCard,
     Forbid,
     LpVary,
+    MoveCard,
     NormalSummon,
-    SendToGraveyard,
 )
 from duel_core.affairs.base import ActionableDuelAffair, AtomicAction, DuelAffair, ExecutableAffair
 from duel_core.affairs.flow import (
@@ -27,7 +26,6 @@ __all__ = [
     "AvailableActions",
     "CompletedAffair",
     "Draw",
-    "DrawCard",
     "DuelAffair",
     "DuelInit",
     "EnterPhase",
@@ -35,9 +33,9 @@ __all__ = [
     "ExitPhase",
     "Forbid",
     "LpVary",
+    "MoveCard",
     "MultiAffair",
     "NormalSummon",
-    "SendToGraveyard",
     "completed_affair_of",
     "completed_enter_phase",
     "completed_multi_origin_of",

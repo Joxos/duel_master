@@ -6,7 +6,7 @@ from duel_core.affairs.base import ActionableDuelAffair, AtomicAction, DuelAffai
 from duel_core.models import REPRESENTATION
 
 if TYPE_CHECKING:
-    from duel_core.models import Player, RuntimeCard
+    from duel_core.models import Player, RuntimeCard, Zone
 
 
 class Draw(ExecutableAffair):
@@ -23,16 +23,21 @@ class Draw(ExecutableAffair):
         return requester_match and player_match and draw_num_match
 
 
-class DrawCard(AtomicAction):
+class MoveCard(AtomicAction):
     player: Player
     card: RuntimeCard
+    from_area: str
+    to_area: str
+    from_zone: Zone | None = None
+    to_zone: Zone | None = None
+    from_representation: REPRESENTATION
+    to_representation: REPRESENTATION
 
 
 class NormalSummon(ExecutableAffair):
     player: Player
     card: RuntimeCard
-    from_hand_index: int
-    to_monster_zone_index: int
+    to_zone: Zone
     from_representation: REPRESENTATION
     to_representation: REPRESENTATION
     normal_summon_used_from: bool
@@ -66,15 +71,6 @@ class Attack(ExecutableAffair):
             and self.attacker == other.attacker
             and self.defender == other.defender
         )
-
-
-class SendToGraveyard(AtomicAction):
-    player: Player
-    card: RuntimeCard
-    from_monster_zone_index: int
-    to_graveyard_index: int
-    from_representation: REPRESENTATION
-    to_representation: REPRESENTATION
 
 
 class LpVary(AtomicAction):
