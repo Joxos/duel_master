@@ -14,10 +14,10 @@ from affairon.composer import PluginComposer
 from pathlib import Path
 
 from duel_core.affairs import (
-    ActionableDuelAffair,
+    DuelAffairWithRequester,
     CompletedAffair,
     DuelAffair,
-    ExecutableAffair,
+    ExposedUserAction,
     Forbid,
 )
 from duel_core.models import DuelState
@@ -45,7 +45,7 @@ class Kernel:
         kernel_composer = PluginComposer(self.dispatcher)
         kernel_composer.compose_from_pyproject(PYPROJECT_PATH, profile="kernel")
 
-    def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
+    def is_forbidden(self, affair: DuelAffairWithRequester) -> bool:
         """Check whether an actionable affair is currently forbidden.
 
         Args:
@@ -59,7 +59,7 @@ class Kernel:
             for forbid in self._forbids
         )
 
-    def do(self, action: ExecutableAffair) -> None:
+    def do(self, action: ExposedUserAction) -> None:
         if self.is_forbidden(action):
             raise ValueError(f"Forbidden: {type(action).__name__}")
         self.dispatcher.emit(action)

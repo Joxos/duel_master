@@ -1,3 +1,3 @@
-from duel_core.kernel.coordinator import Kernel
+from duel_core.kernel.core import Kernel
 
 __all__ = ["Kernel"]
