@@ -1,32 +1,28 @@
-"""Kernel execution listeners.
-
-This module holds state-mutating listeners registered on the kernel dispatcher.
-These listeners apply concrete execution affairs and report completion back to
-the duel dispatcher through the kernel.
-"""
-
 from affairon.listen import listen
 
-from duel_core.affairs import (
-    AdvanceTurn,
-    EnterPhase,
-    LpVary,
-    MoveCard,
-    MultiAffair,
-    NormalSummon,
-)
+from duel_core.affairs import AdvanceTurn, EnterPhase, LpVary, MoveCard, MultiAction
 from duel_core.phase import Phase
 
 
-@listen(MultiAffair)
-def apply_multi_affair(affair: MultiAffair) -> None:
-    kernel = affair.duel.kernel
+def apply_multi_action(affair: MultiAction) -> None:
     for child in affair.children:
-        kernel.dispatcher.emit(child)
-    kernel.complete(affair)
+        apply_atomic_action(child)
+    affair.duel.kernel.complete(affair)
 
 
-@listen(MoveCard)
+def apply_atomic_action(affair: object) -> None:
+    if isinstance(affair, MoveCard):
+        apply_move_card(affair)
+        return
+    if isinstance(affair, LpVary):
+        apply_lp_vary(affair)
+        return
+    if isinstance(affair, AdvanceTurn):
+        apply_advance_turn(affair)
+        return
+    raise ValueError(f"Unsupported atomic action: {type(affair).__name__}")
+
+
 def apply_move_card(affair: MoveCard) -> None:
     if affair.from_area == "main_deck":
         if not affair.player.main_deck.cards or affair.player.main_deck.cards[0] is not affair.card:
@@ -64,39 +60,16 @@ def apply_move_card(affair: MoveCard) -> None:
     raise ValueError(f"Unsupported target area: {affair.to_area}")
 
 
-@listen(EnterPhase, when=lambda affair: affair.phase is Phase.END)
-def complete_end_phase(affair: EnterPhase) -> None:
-    kernel = affair.duel.kernel
-    kernel.state.phase = affair.phase
-    kernel.complete(affair)
-    kernel.dispatcher.emit(
-        AdvanceTurn(
-            duel=affair.duel,
-            from_turn=kernel.state.current_turn_count,
-            to_turn=kernel.state.current_turn_count + 1,
-            from_player=kernel.state.current_player,
-            to_player=kernel.state.opponent_of(kernel.state.current_player),
-            normal_summon_used_from=kernel.state.normal_summon_used,
-            normal_summon_used_to=False,
-        )
-    )
+def apply_lp_vary(affair: LpVary) -> None:
+    affair.player.life_points += affair.delta
 
 
-@listen(EnterPhase, when=lambda affair: affair.phase is not Phase.END)
-def apply_phase_entry(affair: EnterPhase) -> None:
-    kernel = affair.duel.kernel
-    kernel.state.phase = affair.phase
-    kernel.complete(affair)
-
-
-@listen(AdvanceTurn)
 def apply_advance_turn(affair: AdvanceTurn) -> None:
-    kernel = affair.duel.kernel
-    kernel.state.current_player = affair.to_player
-    kernel.state.current_turn_count = affair.to_turn
-    kernel.state.normal_summon_used = affair.normal_summon_used_to
-    kernel.complete(affair)
-    kernel.do(
+    affair.duel.kernel.state.current_player = affair.to_player
+    affair.duel.kernel.state.current_turn_count = affair.to_turn
+    affair.duel.kernel.state.normal_summon_used = affair.normal_summon_used_to
+    affair.duel.kernel.complete(affair)
+    affair.duel.kernel.do(
         EnterPhase(
             duel=affair.duel,
             phase=Phase.DRAW,
@@ -106,25 +79,24 @@ def apply_advance_turn(affair: AdvanceTurn) -> None:
     )
 
 
-@listen(NormalSummon)
-def apply_normal_summon(affair: NormalSummon) -> None:
-    kernel = affair.duel.kernel
-    kernel.dispatcher.emit(
-        MoveCard(
+@listen(EnterPhase, when=lambda affair: affair.phase is Phase.END)
+def complete_end_phase(affair: EnterPhase) -> None:
+    affair.duel.kernel.state.phase = affair.phase
+    affair.duel.kernel.complete(affair)
+    apply_atomic_action(
+        AdvanceTurn(
             duel=affair.duel,
-            player=affair.player,
-            card=affair.card,
-            from_area="hand",
-            to_area="monster_zone",
-            to_zone=affair.to_zone,
-            from_representation=affair.from_representation,
-            to_representation=affair.to_representation,
+            from_turn=affair.duel.kernel.state.current_turn_count,
+            to_turn=affair.duel.kernel.state.current_turn_count + 1,
+            from_player=affair.duel.kernel.state.current_player,
+            to_player=affair.duel.kernel.state.opponent_of(affair.duel.kernel.state.current_player),
+            normal_summon_used_from=affair.duel.kernel.state.normal_summon_used,
+            normal_summon_used_to=False,
         )
     )
-    kernel.state.normal_summon_used = affair.normal_summon_used_to
-    kernel.complete(affair)
 
 
-@listen(LpVary)
-def apply_lp_vary(affair: LpVary) -> None:
-    affair.player.life_points += affair.delta
+@listen(EnterPhase, when=lambda affair: affair.phase is not Phase.END)
+def apply_phase_entry(affair: EnterPhase) -> None:
+    affair.duel.kernel.state.phase = affair.phase
+    affair.duel.kernel.complete(affair)

@@ -2,7 +2,7 @@
 
 This module holds planner listeners registered on the kernel dispatcher. These
 listeners translate executable affairs into concrete execution units such as
-``MultiAffair``.
+``MultiAction``.
 """
 
 from affairon.listen import listen
@@ -13,21 +13,21 @@ from duel_core.affairs import (
     DuelAffair,
     LpVary,
     MoveCard,
-    MultiAffair,
+    MultiAction,
 )
+from duel_core.kernel.appliers import apply_multi_action
 from duel_core.models import REPRESENTATION, RuntimeCard
 
 
 @listen(Draw)
 def plan_draw(affair: Draw) -> None:
-    kernel = affair.duel.kernel
     drawn = [
         card
         for card in affair.player.main_deck.cards[: affair.num]
         if isinstance(card, RuntimeCard)
     ]
-    kernel.dispatcher.emit(
-        MultiAffair(
+    apply_multi_action(
+        MultiAction(
             duel=affair.duel,
             requester=affair.requester,
             origin=affair,
@@ -49,10 +49,8 @@ def plan_draw(affair: Draw) -> None:
 
 @listen(Attack)
 def plan_attack(affair: Attack) -> None:
-    kernel = affair.duel.kernel
-
     attacker = affair.attacker
-    defender_player = kernel.state.opponent_of(affair.player)
+    defender_player = affair.duel.kernel.state.opponent_of(affair.player)
     defender = affair.defender
     children: list[DuelAffair] = []
     attacker_atk = attacker.card.atk
@@ -61,8 +59,8 @@ def plan_attack(affair: Attack) -> None:
 
     if defender is None:
         children.append(LpVary(duel=affair.duel, player=defender_player, delta=-attacker_atk))
-        kernel.dispatcher.emit(
-            MultiAffair(
+        apply_multi_action(
+            MultiAction(
                 duel=affair.duel, requester=affair.requester, origin=affair, children=children
             )
         )
@@ -146,6 +144,6 @@ def plan_attack(affair: Attack) -> None:
             )
         )
 
-    kernel.dispatcher.emit(
-        MultiAffair(duel=affair.duel, requester=affair.requester, origin=affair, children=children)
+    apply_multi_action(
+        MultiAction(duel=affair.duel, requester=affair.requester, origin=affair, children=children)
     )
