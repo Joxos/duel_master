@@ -4,6 +4,7 @@ from duel_core.affairs import (
     CompletedAffair,
     Draw,
     EnterPhase,
+    MoveCard,
     MultiAffair,
     NormalSummon,
     completed_affair_of,
@@ -65,8 +66,8 @@ def test_attack_completion_is_multi_affair() -> None:
 
     attacker_card = _make_runtime_monster(1000, "Blue-Eyes White Dragon", 3000)
     defender_card = _make_runtime_monster(1001, "Battle Ox", 1700)
-    player_1.monster_zones[0] = attacker_card
-    player_2.monster_zones[0] = defender_card
+    player_1.monster_zones[0].card = attacker_card
+    player_2.monster_zones[0].card = defender_card
     duel.state.phase = Phase.BATTLE
 
     completions: list[CompletedAffair] = []
@@ -82,7 +83,7 @@ def test_attack_completion_is_multi_affair() -> None:
     completion = completions[0]
     assert isinstance(completion.affair, MultiAffair)
     assert len(completion.affair.children) == 2
-    assert player_2.monster_zones[0] is None
+    assert player_2.monster_zones[0].card is None
     assert player_2.life_points == 6700
 
 
@@ -218,7 +219,8 @@ def test_observe_accepts_original_player_identity() -> None:
 
     view = duel.observe(player_1)
 
-    assert view.viewer.label == "P1"
+    assert view.player_label == "P1"
+    assert view.public.players[0].label == "P1"
 
 
 def test_manual_normal_summon_bypasses_rule_gate() -> None:
@@ -232,8 +234,7 @@ def test_manual_normal_summon_bypasses_rule_gate() -> None:
         duel=duel,
         player=player,
         card=card,
-        from_hand_index=0,
-        to_monster_zone_index=0,
+        to_zone=player.monster_zones[0],
         from_representation=card.representation,
         to_representation=REPRESENTATION.ATTACK,
         normal_summon_used_from=True,
@@ -243,7 +244,7 @@ def test_manual_normal_summon_bypasses_rule_gate() -> None:
 
     duel.do(action)
 
-    assert player.monster_zones[0] is card
+    assert player.monster_zones[0].card is card
 
 
 def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> None:
@@ -268,8 +269,7 @@ def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> Non
     completion = completions[0]
     assert isinstance(completion.affair, MultiAffair)
     assert completion.affair.origin == draw_action
-    assert all(not hasattr(child, "from_main_deck_index") for child in completion.affair.children)
-    assert all(not hasattr(child, "to_hand_index") for child in completion.affair.children)
+    assert all(isinstance(child, MoveCard) for child in completion.affair.children)
 
 
 def test_public_view_derives_battle_state_from_phase() -> None:
@@ -278,5 +278,14 @@ def test_public_view_derives_battle_state_from_phase() -> None:
 
     view = duel.observe(duel.state.current_player)
 
-    assert view.phase is Phase.BATTLE
-    assert not hasattr(view, "public")
+    assert view.public.phase is Phase.BATTLE
+
+
+def test_observe_exposes_public_and_private_information() -> None:
+    duel = _make_duel()
+
+    view = duel.observe(duel.state.current_player)
+
+    assert view.player_label == duel.state.current_player.label
+    assert len(view.hand) == len(duel.state.current_player.hand)
+    assert len(view.public.players) == 2

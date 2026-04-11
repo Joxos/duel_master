@@ -6,6 +6,7 @@ from duel_core.affairs import (
     CompletedAffair,
     Draw,
     EnterPhase,
+    MoveCard,
     MultiAffair,
     NormalSummon,
     completed_affair_of,
@@ -94,7 +95,7 @@ def test_complete_duel_flow() -> None:
     assert duel.state.phase is Phase.DRAW
 
     view_p1 = duel.observe(player_1)
-    assert view_p1.viewer.label == "P1"
+    assert view_p1.player_label == "P1"
 
     assert len(player_1.main_deck.cards) == 2
     assert len(player_2.main_deck.cards) == 2
@@ -132,8 +133,7 @@ def test_complete_duel_flow() -> None:
         duel=duel,
         player=player_1,
         card=p1_card,
-        from_hand_index=0,
-        to_monster_zone_index=0,
+        to_zone=player_1.monster_zones[0],
         from_representation=p1_card.representation,
         to_representation=REPRESENTATION.ATTACK,
         normal_summon_used_from=False,
@@ -142,7 +142,7 @@ def test_complete_duel_flow() -> None:
     )
     duel.do(p1_summon)
 
-    assert player_1.monster_zones[0] is p1_card
+    assert player_1.monster_zones[0].card is p1_card
     assert duel.state.normal_summon_used
 
     duel.do(
@@ -193,8 +193,7 @@ def test_complete_duel_flow() -> None:
         duel=duel,
         player=player_2,
         card=p2_card,
-        from_hand_index=0,
-        to_monster_zone_index=0,
+        to_zone=player_2.monster_zones[0],
         from_representation=p2_card.representation,
         to_representation=REPRESENTATION.ATTACK,
         normal_summon_used_from=False,
@@ -203,7 +202,7 @@ def test_complete_duel_flow() -> None:
     )
     duel.do(p2_summon)
 
-    assert player_2.monster_zones[0] is p2_card
+    assert player_2.monster_zones[0].card is p2_card
 
     duel.do(
         next(
@@ -232,7 +231,7 @@ def test_complete_duel_flow() -> None:
     assert isinstance(attack_completion.affair, MultiAffair)
     assert len(attack_completion.affair.children) == 2
 
-    assert player_1.monster_zones[0] is None
+    assert player_1.monster_zones[0].card is None
 
     draw_completion = next(
         (c for c in draw_completions if isinstance(c.affair, MultiAffair)),
@@ -242,8 +241,7 @@ def test_complete_duel_flow() -> None:
         affair = draw_completion.affair
         assert isinstance(affair, MultiAffair)
         assert isinstance(affair.origin, Draw)
-        assert all(not hasattr(child, "from_main_deck_index") for child in affair.children)
-        assert all(not hasattr(child, "to_hand_index") for child in affair.children)
+        assert all(isinstance(child, MoveCard) for child in affair.children)
 
     duel.do(
         next(
