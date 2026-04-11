@@ -10,11 +10,10 @@ from affairon.listen import listen
 from duel_core.affairs import (
     Draw,
     Attack,
-    DrawCard,
     DuelAffair,
     LpVary,
+    MoveCard,
     MultiAffair,
-    SendToGraveyard,
 )
 from duel_core.models import REPRESENTATION, RuntimeCard
 
@@ -33,10 +32,14 @@ def plan_draw(affair: Draw) -> None:
             requester=affair.requester,
             origin=affair,
             children=[
-                DrawCard(
+                MoveCard(
                     duel=affair.duel,
                     player=affair.player,
                     card=card,
+                    from_area="main_deck",
+                    to_area="hand",
+                    from_representation=card.representation,
+                    to_representation=card.representation,
                 )
                 for card in drawn
             ],
@@ -71,12 +74,15 @@ def plan_attack(affair: Attack) -> None:
 
     if attacker_atk > defender_atk:
         children.append(
-            SendToGraveyard(
+            MoveCard(
                 duel=affair.duel,
                 player=defender_player,
                 card=defender,
-                from_monster_zone_index=defender_player.monster_zones.index(defender),
-                to_graveyard_index=len(defender_player.graveyard),
+                from_area="monster_zone",
+                to_area="graveyard",
+                from_zone=next(
+                    zone for zone in defender_player.monster_zones if zone.card is defender
+                ),
                 from_representation=defender.representation,
                 to_representation=REPRESENTATION.VOID,
             )
@@ -90,12 +96,15 @@ def plan_attack(affair: Attack) -> None:
         )
     elif attacker_atk < defender_atk:
         children.append(
-            SendToGraveyard(
+            MoveCard(
                 duel=affair.duel,
                 player=affair.player,
                 card=attacker,
-                from_monster_zone_index=affair.player.monster_zones.index(attacker),
-                to_graveyard_index=len(affair.player.graveyard),
+                from_area="monster_zone",
+                to_area="graveyard",
+                from_zone=next(
+                    zone for zone in affair.player.monster_zones if zone.card is attacker
+                ),
                 from_representation=attacker.representation,
                 to_representation=REPRESENTATION.VOID,
             )
@@ -109,23 +118,29 @@ def plan_attack(affair: Attack) -> None:
         )
     else:
         children.append(
-            SendToGraveyard(
+            MoveCard(
                 duel=affair.duel,
                 player=affair.player,
                 card=attacker,
-                from_monster_zone_index=affair.player.monster_zones.index(attacker),
-                to_graveyard_index=len(affair.player.graveyard),
+                from_area="monster_zone",
+                to_area="graveyard",
+                from_zone=next(
+                    zone for zone in affair.player.monster_zones if zone.card is attacker
+                ),
                 from_representation=attacker.representation,
                 to_representation=REPRESENTATION.VOID,
             )
         )
         children.append(
-            SendToGraveyard(
+            MoveCard(
                 duel=affair.duel,
                 player=defender_player,
                 card=defender,
-                from_monster_zone_index=defender_player.monster_zones.index(defender),
-                to_graveyard_index=len(defender_player.graveyard),
+                from_area="monster_zone",
+                to_area="graveyard",
+                from_zone=next(
+                    zone for zone in defender_player.monster_zones if zone.card is defender
+                ),
                 from_representation=defender.representation,
                 to_representation=REPRESENTATION.VOID,
             )

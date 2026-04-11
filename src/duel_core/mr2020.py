@@ -112,7 +112,11 @@ def normal_summon_actions(affair: AvailableActions) -> None:
         return
     if affair.duel.state.normal_summon_used:
         return
-    if None not in affair.duel.state.current_player.monster_zones:
+    empty_zone = next(
+        (zone for zone in affair.duel.state.current_player.monster_zones if zone.card is None),
+        None,
+    )
+    if empty_zone is None:
         return
     for card in affair.duel.state.current_player.hand:
         if card.card.level is None or card.card.level > 4:
@@ -122,8 +126,7 @@ def normal_summon_actions(affair: AvailableActions) -> None:
                 duel=affair.duel,
                 player=affair.duel.state.current_player,
                 card=card,
-                from_hand_index=affair.duel.state.current_player.hand.index(card),
-                to_monster_zone_index=affair.duel.state.current_player.monster_zones.index(None),
+                to_zone=empty_zone,
                 from_representation=card.representation,
                 to_representation=REPRESENTATION.ATTACK,
                 normal_summon_used_from=affair.duel.state.normal_summon_used,
@@ -139,12 +142,13 @@ def battle_actions(affair: AvailableActions) -> None:
         return
     attacker = affair.duel.state.current_player
     defender = affair.duel.state.opponent_of(attacker)
-    for attacker_card in attacker.monster_zones:
+    for attacker_zone in attacker.monster_zones:
+        attacker_card = attacker_zone.card
         if attacker_card is None:
             continue
         if attacker_card.representation is not REPRESENTATION.ATTACK:
             continue
-        if all(d is None for d in defender.monster_zones):
+        if all(zone.card is None for zone in defender.monster_zones):
             affair.actions.append(
                 Attack(
                     duel=affair.duel,
@@ -154,7 +158,8 @@ def battle_actions(affair: AvailableActions) -> None:
                 )
             )
             continue
-        for defender_card in defender.monster_zones:
+        for defender_zone in defender.monster_zones:
+            defender_card = defender_zone.card
             if defender_card is None:
                 continue
             affair.actions.append(
