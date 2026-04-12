@@ -5,8 +5,8 @@ manual smoke testing of the current architecture-first slice.
 """
 
 from cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
-from duel_core import Card, Deck, Duel, Player
-from duel_core.models import PlayerView, PublicPlayerView, RuntimeCard
+from duel_core import Duel
+from duel_core.mr2020.models import Card, Deck, Player, PlayerView, PublicPlayerView, RuntimeCard
 from duel_core.phase import Phase
 from rich.columns import Columns
 from rich.console import Console

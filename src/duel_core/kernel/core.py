@@ -20,7 +20,7 @@ from duel_core.affairs import (
     ExposedUserAction,
     Forbid,
 )
-from duel_core.models import DuelState
+from duel_core.mr2020.models import DuelState
 
 PYPROJECT_PATH = Path(__file__).resolve().parents[3] / "pyproject.toml"
 

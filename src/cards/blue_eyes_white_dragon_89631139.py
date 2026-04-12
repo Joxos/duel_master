@@ -5,7 +5,7 @@ It must produce a fresh ``Card`` instance per call so multiple copies do not
 share object identity during duel progression.
 """
 
-from duel_core.models import Card
+from duel_core.mr2020.models import Card
 
 
 BLUE_EYES_WHITE_DRAGON = {

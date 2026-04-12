@@ -6,7 +6,7 @@ from duel_core.affairs.base import AtomicAction, ExposedUserAction
 from duel_core.phase import Phase
 
 if TYPE_CHECKING:
-    from duel_core.models import Player
+    from duel_core.mr2020.models import Player
 
 
 class EnterPhase(ExposedUserAction):

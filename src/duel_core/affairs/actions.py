@@ -2,11 +2,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from duel_core.affairs.base import DuelAffairWithRequester, AtomicAction, DuelAffair, ExposedUserAction
-from duel_core.models import REPRESENTATION
+from duel_core.affairs.base import (
+    DuelAffairWithRequester,
+    AtomicAction,
+    DuelAffair,
+    ExposedUserAction,
+)
+from duel_core.mr2020.models import REPRESENTATION
 
 if TYPE_CHECKING:
-    from duel_core.models import Player, RuntimeCard, Zone
+    from duel_core.mr2020.models import Player, RuntimeCard, Zone
 
 
 class Draw(ExposedUserAction):

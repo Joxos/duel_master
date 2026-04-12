@@ -26,6 +26,7 @@ local_plugins = [
   "duel_core.kernel.planners",
   "duel_core.kernel.appliers",
   "duel_core.mr2020.actions",
+  "duel_core.mr2020.planners",
 ]
 
 [dependency-groups]

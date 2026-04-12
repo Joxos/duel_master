@@ -6,11 +6,10 @@ from affairon.listen import listen
 
 from duel_core.affairs import ExposedUserAction, MoveCard
 from duel_core.kernel.appliers import apply_atomic_action
-from duel_core.models import REPRESENTATION, Zone
-from duel_core.phase import Phase
+from duel_core.mr2020.models import REPRESENTATION, Zone
 
 if TYPE_CHECKING:
-    from duel_core.models import Player, RuntimeCard
+    from duel_core.mr2020.models import Player, RuntimeCard
 
 
 class NormalSummon(ExposedUserAction):
@@ -39,17 +38,6 @@ class NormalSummon(ExposedUserAction):
 
 @listen(NormalSummon)
 def plan_normal_summon(affair: NormalSummon) -> None:
-    if affair.duel.state.phase not in (Phase.MAIN_1, Phase.MAIN_2):
-        raise ValueError("NormalSummon requires a main phase")
-    if affair.duel.state.normal_summon_used:
-        raise ValueError("Normal summon already used")
-    if affair.card not in affair.player.hand:
-        raise ValueError("NormalSummon card must be in hand")
-    if affair.card.card.level is None or affair.card.card.level > 4:
-        raise ValueError("NormalSummon currently supports level 4 or lower monsters only")
-    if affair.to_zone.card is not None:
-        raise ValueError("NormalSummon target zone must be empty")
-
     apply_atomic_action(
         MoveCard(
             duel=affair.duel,

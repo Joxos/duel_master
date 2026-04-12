@@ -25,8 +25,8 @@ from duel_core.affairs import (
     MultiAction,
 )
 from duel_core.kernel import Kernel
-from duel_core.mr2020 import NormalSummon
-from duel_core.models import (
+from duel_core.mr2020.actions import NormalSummon
+from duel_core.mr2020.models import (
     Card,
     Deck,
     DuelState,

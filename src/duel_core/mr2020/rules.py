@@ -10,7 +10,7 @@ from duel_core.affairs import (
     Forbid,
     completed_enter_phase,
 )
-from duel_core.models import REPRESENTATION
+from duel_core.mr2020.models import REPRESENTATION
 from duel_core.mr2020.actions import NormalSummon
 from duel_core.phase import Phase
 

@@ -13,15 +13,12 @@ from duel_core.affairs import (
     MultiAction,
 )
 from duel_core.duel import Duel
-from duel_core.models import Card, Deck, Player, PlayerView, PublicView, Zone
 from duel_core.phase import Phase
 
 __all__ = [
     "Attack",
     "AdvanceTurn",
     "CompletedAffair",
-    "Card",
-    "Deck",
     "Draw",
     "Duel",
     "DuelInit",
@@ -33,8 +30,4 @@ __all__ = [
     "MoveCard",
     "MultiAction",
     "Phase",
-    "Player",
-    "PlayerView",
-    "PublicView",
-    "Zone",
 ]
