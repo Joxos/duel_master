@@ -31,3 +31,7 @@ To avoid context loss, every architecture discussion must be persisted under
 
 Rebuild from first principles through small executable slices, while keeping the
 architecture discussion durable and reviewable.
+
+## TODO
+
+- Revisit semantic-action re-entry through `kernel.do(...)`: semantic forbids correctly target semantic actions, but semantic-to-atomic translation currently still routes through the same execution entrance in a few places and may deserve a narrower handoff boundary later.

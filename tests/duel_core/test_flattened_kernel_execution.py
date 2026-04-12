@@ -10,8 +10,8 @@ from duel_core.affairs import (
     completed_multi_action_origin_of,
 )
 from duel_core.duel import Duel
-from duel_core.models import Card, Deck, Player, REPRESENTATION, RuntimeCard
-from duel_core.mr2020 import NormalSummon
+from duel_core.mr2020.actions import NormalSummon
+from duel_core.mr2020.models import Card, Deck, Player, REPRESENTATION, RuntimeCard
 from duel_core.phase import Phase
 
 
@@ -223,7 +223,7 @@ def test_observe_accepts_original_player_identity() -> None:
     assert view.public.players[0].label == "P1"
 
 
-def test_manual_normal_summon_respects_rule_gate() -> None:
+def test_manual_normal_summon_applies_without_execution_recheck() -> None:
     duel = _make_duel()
     player = duel.state.current_player
     duel.state.phase = Phase.MAIN_1
@@ -239,15 +239,12 @@ def test_manual_normal_summon_respects_rule_gate() -> None:
         to_representation=REPRESENTATION.ATTACK,
         normal_summon_used_from=True,
         normal_summon_used_to=True,
-        requester=test_manual_normal_summon_respects_rule_gate,
+        requester=test_manual_normal_summon_applies_without_execution_recheck,
     )
 
-    try:
-        duel.do(action)
-    except ValueError as exc:
-        assert str(exc) == "Normal summon already used"
-    else:
-        raise AssertionError("NormalSummon should respect MR2020 summon legality")
+    duel.do(action)
+
+    assert player.monster_zones[0].card is card
 
 
 def test_draw_completion_uses_multi_affair_origin_without_index_payload() -> None:
