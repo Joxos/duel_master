@@ -17,16 +17,16 @@ local_plugins = []
 
 [tool.affairon.profiles.duel]
 local_plugins = [
-  "duel_core.mr2020.rules",
-  "duel_core.kernel.bridges",
-]
-
-[tool.affairon.profiles.kernel]
-local_plugins = [
-  "duel_core.kernel.planners",
-  "duel_core.kernel.appliers",
-  "duel_core.mr2020.actions",
-  "duel_core.mr2020.planners",
+  "duel_core.mr2020.player.listeners",
+  "duel_core.mr2020.life_point.listeners",
+  "duel_core.mr2020.phase.listeners",
+  "duel_core.mr2020.turn.listeners",
+  "duel_core.mr2020.summon.listeners",
+  "duel_core.mr2020.forbid.listeners",
+  "duel_core.mr2020.card.listeners",
+  "duel_core.mr2020.view.listeners",
+  "duel_core.mr2020.draw.listeners",
+  "duel_core.mr2020.battle.listeners",
 ]
 
 [dependency-groups]

@@ -4,10 +4,12 @@ The CLI consumes player-facing views from ``Duel.observe`` and renders them for
 manual smoke testing of the current architecture-first slice.
 """
 
-from cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
+from duel_core.cards.blue_eyes_white_dragon_89631139 import blue_eyes_white_dragon_89631139
 from duel_core import Duel
-from duel_core.mr2020.models import Card, Deck, Player, PlayerView, PublicPlayerView, RuntimeCard
-from duel_core.phase import Phase
+from duel_core.mr2020.card.models import Card, RuntimeCard
+from duel_core.mr2020.phase.models import Phase
+from duel_core.mr2020.player.models import Deck, Player
+from duel_core.mr2020.view.models import PlayerView, PublicPlayerView
 from rich.columns import Columns
 from rich.console import Console
 from rich.panel import Panel
@@ -121,7 +123,7 @@ def render(view: PlayerView) -> None:
 def run_hotseat_demo() -> int:
     duel = build_demo_duel()
     while True:
-        render(duel.observe(view=duel.state.current_player))
+        render(duel.observe(duel.state.get_current_player()))
         actions = duel.available_actions()
         if not actions:
             console.print(Panel("(none)", title="Available actions", border_style="yellow"))
