@@ -24,7 +24,7 @@
 
 The public callable loop remains:
 
-- `observe(view=...)`
+- `observe(player)`
 - `available_actions()`
 - `do(action)`
 
@@ -51,57 +51,55 @@ These are peers. `duel/` is not a parent owner for the other concerns.
 
 ### Concern ownership
 
-- `duel/` owns duel bootstrap, bus shell, duel-loop anchor affairs, and public action collection.
+- `duel/` owns duel bootstrap, bus shell, duel-loop anchor affairs, `ProviderRegistry`, `MultiAction` execution, and public action collection.
 - `timing/` owns timing-specific action bases and shared predicates.
-- `phase/` owns `Phase`, phase transition affairs, and phase helper injection.
-- `turn/` owns turn progression affairs plus current-turn helper injection.
-- `player/` owns `Player`, `Deck`, `Zone`, `SetPlayers`, and player/current-player helper injection.
+- `phase/` owns `Phase`, `PhaseRuntime`, phase transition affairs.
+- `turn/` owns `TurnRuntime`, `AdvanceTurn`, and turn progression.
+- `player/` owns `Player`, `Deck`, `Zone`, `PlayerRuntime`, `SetPlayers`.
 - `card/` owns `Card`, `RuntimeCard`, `REPRESENTATION`, `MoveCard`, and runtime card normalization.
 - `draw/` owns draw affairs and draw planning listeners.
-- `summon/` owns `NormalSummon` and summon-state helper injection.
+- `summon/` owns `NormalSummon`, `SummonRuntime`.
 - `battle/` owns `Attack`, battle availability, and battle resolution.
 - `life_point/` owns `LpVary`, LP initialization, and LP mutation application.
-- `forbid/` owns `Forbid`, forbid state helper injection, forbid policy, and the checked `do(...)` entrypoint.
-- `view/` owns `PublicView`, `PublicPlayerView`, `PlayerView`, and injected `observe(...)`.
+- `forbid/` owns `Forbid`, `ForbidRuntime`, forbid policy. `ForbidRuntime.do(...)` is the checked action entrypoint.
+- `view/` owns `PublicView`, `PublicPlayerView`, `PlayerView`, `ViewRuntime`.
 
-### Duel shell
+### Provider system (provide/inject)
 
-Current runtime `Duel` is intentionally much thinner than before.
+Runtime state is managed through typed providers rather than loose callable injection on `Duel`.
 
-At runtime it directly owns only:
+Each concern defines a `runtime.py` module containing a plain class that encapsulates the concern's mutable state and methods:
 
-- `dispatcher`
-- `emit`
-- `available_actions()`
-- construction/startup glue
+- `PlayerRuntime` — players, current player, opponent lookup
+- `PhaseRuntime` — current phase
+- `TurnRuntime` — current turn count
+- `SummonRuntime` — normal summon usage tracking
+- `ForbidRuntime` — active forbids, checked `do(...)` entrypoint
+- `ViewRuntime` — observe implementation
 
-Everything else is injected by concern listeners:
+`Duel` holds a `ProviderRegistry` (typed `dict[type, object]` with `provide()`/`inject()` methods). Concern listeners create and `provide()` their runtime objects during `SetPlayers` or `DuelInit`. Other listeners and `Duel` methods access concern state through `duel.inject(XyzRuntime)`.
 
-- players/current player → `player/`
-- turn count → `turn/`
-- phase → `phase/`
-- normal summon state → `summon/`
-- forbid state and `do(...)` → `forbid/`
-- `observe(...)` → `view/`
-- `opponent_of(...)` → `player/`
+`Duel.do()` and `Duel.observe()` are authored methods on `Duel` that delegate to `ForbidRuntime` and `ViewRuntime` respectively. Backward-compatible `get_*` accessor methods on `Duel` delegate to the appropriate provider.
 
-### Dispatch semantics
+### Execution semantics
 
-The two dispatch entry semantics are now intentionally split:
+The execution model has two tiers:
 
 - `emit(...)` is raw dispatcher emission with no forbid check.
-- `do(...)` is the duel action entrypoint injected by `forbid/` and performs forbid checks before delegating to `emit(...)`.
+- `do(...)` is the public action entrypoint (authored on `Duel`, delegated to `ForbidRuntime`) that performs forbid checks before delegating to `emit(...)`.
 
-This means internal chained execution can use raw emission where appropriate, while player-visible actions keep one checked gate.
+Semantic actions (`Draw`, `NormalSummon`, `Attack`) are listener-handled. Each semantic listener plans atomic children and emits a `MultiAction`. A dedicated `@listen(MultiAction)` in `duel/listeners.py` iterates children and emits each through the bus, then emits `CompletedAffair` for the composite. This makes atomic-level operations (`MoveCard`, `LpVary`) visible on the bus and preserves a single authoritative execution path.
 
 ### Composition structure
 
-Plugin composition is currently loaded from `[tool.affairon.profiles.duel]` in `pyproject.toml`.
+Plugin composition is loaded from `[tool.affairon.profiles.duel]` in `pyproject.toml`.
 
 There is no separate `plugins/` package and no separate `duel-runtime` profile.
 Concern listeners are composed directly from their owning packages.
 
-Cross-concern Pydantic rebuild ownership is still orchestrated from `mr2020.duel.bootstrap`, but each concern now contributes its own rebuild hook.
+`PYPROJECT_PATH` is resolved by walking upward from the bootstrap module until `pyproject.toml` is found.
+
+Cross-concern Pydantic rebuild ownership is still orchestrated from `mr2020.duel.bootstrap`, but each concern contributes its own rebuild hook.
 
 ### Current affair vocabulary by owner
 
@@ -140,16 +138,16 @@ Cross-concern Pydantic rebuild ownership is still orchestrated from `mr2020.duel
 
 1. `Duel` is constructed from two `Player` objects and one explicit starting player.
 2. `mr2020.duel.bootstrap` rebuilds the current model graph and composes concern listeners.
-3. `SetPlayers` is emitted first.
-4. `DuelInit` is emitted next.
-5. Concern listeners inject player, phase, turn, summon, forbid, card, and view helpers/state.
+3. `SetPlayers` is emitted first. `PlayerRuntime` is provided.
+4. `DuelInit` is emitted next. Concern listeners provide `PhaseRuntime`, `TurnRuntime`, `SummonRuntime`, `ForbidRuntime`, `ViewRuntime`.
+5. Runtime card normalization runs.
 6. Opening draws happen.
 7. Initial life points are assigned by `life_point/`.
 8. First-turn draw and first-turn battle entry are forbidden through `Forbid`.
 9. `available_actions()` collects concern-contributed actions for the current duel state.
-10. `do(action)` checks forbid policy and then delegates to `emit(action)`.
-11. Concern listeners apply draw, summon, battle, life-point, phase, and turn behavior.
-12. Completed work is surfaced through `CompletedAffair`.
+10. `do(action)` delegates to `ForbidRuntime`, which checks forbid policy and then delegates to `emit(action)`.
+11. Semantic listeners plan atomic children into `MultiAction`, which is emitted and executed through the bus.
+12. Completed work is surfaced through `CompletedAffair` at both atomic and composite levels.
 
 ### Validation target
 
@@ -172,12 +170,14 @@ The following are superseded for current implementation discussion:
 - `duel_core/duel.py` as runtime owner
 - `mr2020/affairs.py` as a central aggregate affair file
 - `mr2020/plugins/` as the main ownership layout
+- `mr2020/life_points/`, `mr2020/move/`, `mr2020/models/` as concern directories
 - `battle/` owning LP mutation and LP initialization
-- `Duel.do(...)` implemented directly in `duel/models.py`
+- `Duel.do(...)` implemented directly in `duel/models.py` as an authored method with inline logic
 - `Duel` directly owning players/current player/turn/phase/summon/forbid/view fields as its authored shape
+- Loose `Callable` injection of helper methods onto `Duel` by listeners
+- Direct applier function calls (`apply_move_card()`, `apply_lp_vary()`) bypassing the event bus inside `MultiAction` execution
 
 ## Open questions
 
 1. Should rebuild orchestration stay in `duel/bootstrap.py`, or should concern modules eventually self-register more of that startup wiring?
 2. Should shared predicates still live in `timing/`, or should some move into duel-loop or concern-local modules as the rule graph grows?
-3. When should injected helper contracts become explicit package-local docs or declaration files rather than code-only convention?

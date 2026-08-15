@@ -7,6 +7,7 @@ from duel_core.mr2020.duel.affairs import (
     MultiAction,
 )
 from duel_core.mr2020.duel.models import Duel
+from duel_core.mr2020.duel.providers import ProviderRegistry
 
 __all__ = [
     "AvailableActions",
@@ -16,4 +17,5 @@ __all__ = [
     "DuelAffairWithRequester",
     "DuelInit",
     "MultiAction",
+    "ProviderRegistry",
 ]

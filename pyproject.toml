@@ -17,6 +17,7 @@ local_plugins = []
 
 [tool.affairon.profiles.duel]
 local_plugins = [
+  "duel_core.mr2020.duel.listeners",
   "duel_core.mr2020.player.listeners",
   "duel_core.mr2020.life_point.listeners",
   "duel_core.mr2020.phase.listeners",
@@ -42,7 +43,6 @@ target-version = "py312"
 
 [tool.basedpyright]
 pythonVersion = "3.12"
-typeCheckingMode = "basic"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

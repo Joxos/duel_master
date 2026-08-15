@@ -8,7 +8,18 @@ from affairon.composer import PluginComposer
 if TYPE_CHECKING:
     from duel_core.mr2020.duel.models import Duel
 
-PYPROJECT_PATH = Path(__file__).resolve().parents[4] / "pyproject.toml"
+
+def _find_pyproject() -> Path:
+    current = Path(__file__).resolve().parent
+    while current != current.parent:
+        candidate = current / "pyproject.toml"
+        if candidate.exists():
+            return candidate
+        current = current.parent
+    raise FileNotFoundError("pyproject.toml not found")
+
+
+PYPROJECT_PATH = _find_pyproject()
 
 
 def rebuild_model_graph() -> None:

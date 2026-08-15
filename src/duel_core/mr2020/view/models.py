@@ -6,6 +6,10 @@ from duel_core.models import FrozenModel
 from duel_core.mr2020.card.models import RuntimeCard
 from duel_core.mr2020.phase.models import Phase
 from duel_core.mr2020.player.models import Player
+from duel_core.mr2020.phase.runtime import PhaseRuntime
+from duel_core.mr2020.player.runtime import PlayerRuntime
+from duel_core.mr2020.summon.runtime import SummonRuntime
+from duel_core.mr2020.turn.runtime import TurnRuntime
 
 if TYPE_CHECKING:
     from duel_core.mr2020.duel.models import Duel
@@ -36,14 +40,18 @@ class PublicView(FrozenModel):
 
     @classmethod
     def from_duel(cls, duel: Duel) -> Self:
+        player_runtime = duel.inject(PlayerRuntime)
+        turn_runtime = duel.inject(TurnRuntime)
+        phase_runtime = duel.inject(PhaseRuntime)
+        summon_runtime = duel.inject(SummonRuntime)
         public_players = tuple(
-            PublicPlayerView.from_player(player) for player in duel.get_players()
+            PublicPlayerView.from_player(player) for player in player_runtime.players
         )
         return cls(
-            current_player_label=duel.get_current_player().label,
-            current_turn=duel.get_current_turn_count(),
-            phase=duel.get_phase(),
-            normal_summon_used=duel.get_normal_summon_used(),
+            current_player_label=player_runtime.current_player.label,
+            current_turn=turn_runtime.current_turn_count,
+            phase=phase_runtime.phase,
+            normal_summon_used=summon_runtime.normal_summon_used,
             players=cast(tuple[PublicPlayerView, PublicPlayerView], public_players),
         )
 

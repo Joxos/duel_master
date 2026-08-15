@@ -4,21 +4,23 @@ from affairon import listen
 
 from duel_core.mr2020.battle.affairs import Attack
 from duel_core.mr2020.card.affairs import MoveCard
-from duel_core.mr2020.card.listeners import apply_move_card
-from duel_core.mr2020.duel.affairs import AvailableActions, CompletedAffair, DuelInit, MultiAction
+from duel_core.mr2020.duel.affairs import AvailableActions, DuelInit, MultiAction
 from duel_core.mr2020.forbid.affairs import Forbid
-from duel_core.mr2020.forbid.listeners import inject_active_forbids
+from duel_core.mr2020.forbid.listeners import setup_forbid_runtime
 from duel_core.mr2020.life_point.affairs import LpVary
-from duel_core.mr2020.life_point.listeners import apply_lp_vary
+from duel_core.mr2020.phase.runtime import PhaseRuntime
+from duel_core.mr2020.player.runtime import PlayerRuntime
 from duel_core.mr2020.phase.affairs import EnterPhase
 from duel_core.mr2020.phase.listeners import offer_phase_actions
 from duel_core.mr2020.phase.models import Phase
 from duel_core.mr2020.timing.affairs import AtomicAction
 from duel_core.mr2020.card.models import REPRESENTATION
+from duel_core.mr2020.turn.runtime import TurnRuntime
 
 
-@listen(DuelInit, after=[inject_active_forbids])
+@listen(DuelInit, after=[setup_forbid_runtime])
 def forbid_first_turn_battle(affair: DuelInit) -> None:
+    turn_runtime = affair.duel.inject(TurnRuntime)
     affair.duel.emit(
         Forbid(
             duel=affair.duel,
@@ -28,18 +30,20 @@ def forbid_first_turn_battle(affair: DuelInit) -> None:
                 source_phase=Phase.MAIN_1,
                 requester=offer_phase_actions,
             ),
-            inactive_from_turn=affair.duel.get_current_turn_count() + 1,
+            inactive_from_turn=turn_runtime.current_turn_count + 1,
         )
     )
 
 
 @listen(AvailableActions)
 def offer_attacks(affair: AvailableActions) -> None:
-    if affair.duel.get_phase() is not Phase.BATTLE:
+    duel = affair.duel
+    if duel.inject(PhaseRuntime).phase is not Phase.BATTLE:
         return
 
-    attacker = affair.duel.get_current_player()
-    defender = affair.duel.opponent_of(attacker)
+    player_runtime = duel.inject(PlayerRuntime)
+    attacker = player_runtime.current_player
+    defender = player_runtime.opponent_of(attacker)
     for attacker_zone in attacker.monster_zones:
         attacker_card = attacker_zone.card
         if attacker_card is None or attacker_card.representation is not REPRESENTATION.ATTACK:
@@ -75,7 +79,7 @@ def apply_attack(affair: Attack) -> None:
     if attacker_atk is None:
         raise ValueError("Attack requires attacker ATK")
 
-    defender_player = affair.duel.opponent_of(affair.player)
+    defender_player = affair.duel.inject(PlayerRuntime).opponent_of(affair.player)
     children: list[AtomicAction] = []
 
     if affair.defender is None:
@@ -168,9 +172,4 @@ def apply_attack(affair: Attack) -> None:
         origin=affair,
         children=children,
     )
-    for child in multi.children:
-        if isinstance(child, MoveCard):
-            apply_move_card(child)
-        elif isinstance(child, LpVary):
-            apply_lp_vary(child)
-    affair.duel.emit(CompletedAffair(duel=affair.duel, affair=multi))
+    affair.duel.emit(multi)

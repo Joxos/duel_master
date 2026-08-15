@@ -13,3 +13,4 @@ dist/
 
 # Local architecture notes kept out of git
 docs/
+.vscode/

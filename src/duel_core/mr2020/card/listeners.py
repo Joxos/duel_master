@@ -5,6 +5,7 @@ from affairon import listen
 from duel_core.mr2020.card.affairs import MoveCard
 from duel_core.mr2020.card.models import Card, REPRESENTATION, RuntimeCard
 from duel_core.mr2020.duel.affairs import CompletedAffair, DuelInit
+from duel_core.mr2020.player.runtime import PlayerRuntime
 
 
 @listen(DuelInit)
@@ -25,7 +26,7 @@ def normalize_runtime_cards(affair: DuelInit) -> None:
         next_runtime_id += 1
         return runtime_card
 
-    for player in affair.duel.get_players():
+    for player in affair.duel.inject(PlayerRuntime).players:
         player.main_deck.cards = [to_runtime(card) for card in player.main_deck.cards]
         player.extra_deck.cards = [to_runtime(card) for card in player.extra_deck.cards]
 

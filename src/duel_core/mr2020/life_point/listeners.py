@@ -2,13 +2,14 @@ from affairon import listen
 
 from duel_core.mr2020.duel.affairs import CompletedAffair, DuelInit
 from duel_core.mr2020.life_point.affairs import LpVary
+from duel_core.mr2020.player.runtime import PlayerRuntime
 
 INITIAL_LIFE_POINTS = 8000
 
 
 @listen(DuelInit)
 def assign_initial_life_points(affair: DuelInit) -> None:
-    for player in affair.duel.get_players():
+    for player in affair.duel.inject(PlayerRuntime).players:
         player.life_points = INITIAL_LIFE_POINTS
 
 
