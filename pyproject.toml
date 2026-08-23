@@ -5,7 +5,7 @@ description = "Fresh architecture-first scaffold for duel-master"
 requires-python = ">=3.12"
 dependencies = [
   "pydantic>=2.12.0",
-  "affairon @ file:///home/Joxos/source/affairon",
+  "affairon @ git+https://github.com/Joxos/affairon.git",
   "rich>=14.3.3",
 ]
 
@@ -13,7 +13,7 @@ dependencies = [
 duel-master = "duel_master.cli:main"
 
 [tool.affairon]
-local_plugins = ["duel_core.mr2020"]
+local_plugins = ["duel_core.mr2020", "duel_core.mr2020_win"]
 
 [dependency-groups]
 dev = [

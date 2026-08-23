@@ -76,6 +76,7 @@ class DuelState(BaseModel):
         ("phase", lambda state: state.phase),
         ("normal_summon_used", lambda state: state.normal_summon_used),
         ("battle_entered", lambda state: state.phase is Phase.BATTLE),
+        ("game_over", lambda state: state.game_over),
     )
 
     players: tuple[Player, Player]
@@ -83,6 +84,8 @@ class DuelState(BaseModel):
     current_turn: int
     phase: Phase
     normal_summon_used: bool = False
+    game_over: bool = False
+    winner: Player | None = None
 
     @property
     def opponent(self) -> Player:
@@ -123,6 +126,7 @@ class PublicView(BaseModel):
     phase: Phase
     normal_summon_used: bool
     battle_entered: bool
+    game_over: bool
 
 
 class VisiblePlayer(BaseModel):
