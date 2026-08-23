@@ -5,28 +5,12 @@ requires-python = ">=3.12"
 [[package]]
 name = "affairon"
 version = "0.1.0"
-source = { directory = "/home/Joxos/source/affairon" }
+source = { git = "https://github.com/Joxos/affairon.git#6b8251e1c19ee62c350f528ea0eb48ee78247659" }
 dependencies = [
     { name = "loguru" },
     { name = "networkx" },
     { name = "packaging" },
     { name = "pydantic" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "loguru", specifier = ">=0.7" },
-    { name = "networkx", specifier = ">=3.6.1" },
-    { name = "packaging", specifier = ">=23.0" },
-    { name = "pydantic", specifier = ">=2.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.408" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.24" },
-    { name = "ruff", specifier = ">=0.1.0" },
 ]
 
 [[package]]
@@ -78,7 +62,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "affairon", directory = "/home/Joxos/source/affairon" },
+    { name = "affairon", git = "https://github.com/Joxos/affairon.git" },
     { name = "pydantic", specifier = ">=2.12.0" },
     { name = "rich", specifier = ">=14.3.3" },
 ]
