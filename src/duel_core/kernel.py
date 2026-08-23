@@ -21,12 +21,13 @@ from duel_core.affairs import (
     ExecutionRequest,
     Forbid,
     LpVary,
+    MatchEnd,
     MultiAffair,
     NormalSummon,
     SendToGraveyard,
     TurnCleanup,
 )
-from duel_core.models import DuelState, RuntimeCard, REPRESENTATION
+from duel_core.models import DuelState, Player, RuntimeCard, REPRESENTATION
 from duel_core.phase import Phase
 
 if TYPE_CHECKING:
@@ -54,6 +55,7 @@ class Kernel:
         duel_dispatcher.on(Attack)(self._execute_top_level)
         duel_dispatcher.on(Forbid)(self._register_forbid)
         duel_dispatcher.on(TurnCleanup)(self._cleanup_forbids)
+        duel_dispatcher.on(MatchEnd)(self._apply_match_end)
 
     def is_forbidden(self, affair: ActionableDuelAffair) -> bool:
         return any(
@@ -163,6 +165,16 @@ class Kernel:
 
     def _apply_lp_vary(self, affair: LpVary) -> None:
         affair.player.life_points += affair.delta
+
+    def _apply_match_end(self, affair: MatchEnd) -> None:
+        if self.state.game_over:
+            return
+        self._finalize_match(winner=affair.winner, loser=affair.loser, reason=affair.reason)
+
+    def _finalize_match(self, *, winner: Player, loser: Player, reason: str) -> None:
+        """Mark the duel as over and record the declared winner."""
+        self.state.game_over = True
+        self.state.winner = winner
 
     def _register_forbid(self, affair: Forbid) -> None:
         self._forbids.append(affair)

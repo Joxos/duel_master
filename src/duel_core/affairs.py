@@ -177,3 +177,30 @@ class Forbid(DuelAffair):
         if not isinstance(other, Forbid):
             return False
         return self.target == other.target
+
+
+class Concede(DuelAffair):
+    """A player's voluntary surrender of the duel.
+
+    Attributes:
+        player: The player who surrenders.
+    """
+
+    player: Player
+
+
+class MatchEnd(DuelAffair):
+    """Signals the end of a duel with a declared winner.
+
+    Emitted by the victory-condition rule plugin once a win condition is
+    satisfied, and consumed by the kernel to finalize duel state.
+
+    Attributes:
+        winner: The player who won the duel.
+        loser: The player who lost the duel.
+        reason: Machine-readable victory condition identifier.
+    """
+
+    winner: Player
+    loser: Player
+    reason: str

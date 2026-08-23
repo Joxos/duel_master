@@ -14,6 +14,7 @@ from duel_core.affairs import (
     Attack,
     AvailableActions,
     CompletedAffair,
+    Concede,
     Draw,
     DuelAffair,
     DuelInit,
@@ -23,6 +24,7 @@ from duel_core.affairs import (
     ExitPhase,
     Forbid,
     LpVary,
+    MatchEnd,
     MultiAffair,
     NormalSummon,
     SendToGraveyard,
@@ -114,6 +116,8 @@ class Duel:
                 "RuntimeCard": RuntimeCard,
             }
         )
+        Concede.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player})
+        MatchEnd.model_rebuild(_types_namespace={"Duel": Duel, "Player": Player})
 
     @property
     def state(self) -> DuelState:
